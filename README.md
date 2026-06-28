@@ -1,10 +1,11 @@
 <div align="center">
 
 <pre>
-  ___   __  __ _     _       
- / _ \  \ \/ /(_) __| | ___  
-| (_) |  >  <  | |/ _` |/ _ \ 
- \___/  /_/\_\_|_|\__,_|\___| 
+  ###  #   # ### ####  #####
+ #   #  # #   #  #   # #    
+ #   #   #    #  #   # #### 
+ #   #  # #   #  #   # #    
+  ###  #   # ### ####  #####
 </pre>
 
 **High-performance LLM gateway that keeps telemetry off the critical path.**
