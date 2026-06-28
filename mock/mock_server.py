@@ -52,6 +52,7 @@ class Handler(BaseHTTPRequestHandler):
 
 class HighCapacityHTTPServer(ThreadingHTTPServer):
     request_queue_size = 1024
+    disable_nagle_algorithm = True
 
 if __name__ == "__main__":
     server = HighCapacityHTTPServer(("0.0.0.0", 9000), Handler)
