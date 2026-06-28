@@ -1,6 +1,6 @@
 # GitHub Copilot Instructions
 
-This repository is the LiteLLM Killer project: a Rust LLM gateway focused on streaming performance and telemetry off the critical path.
+This repository is the oxideLLM project: a Rust LLM gateway focused on streaming performance and telemetry off the critical path.
 
 Before making code changes:
 

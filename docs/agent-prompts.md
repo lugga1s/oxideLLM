@@ -9,7 +9,7 @@ Substitua os campos entre `<...>`.
 ## 1. Prompt Universal de Boot
 
 ```text
-Voce esta trabalhando no projeto LiteLLM Killer, um gateway/proxy de LLMs em Rust.
+Voce esta trabalhando no projeto oxideLLM, um gateway/proxy de LLMs em Rust.
 
 Leia obrigatoriamente:
 - AGENTS.md
@@ -212,7 +212,7 @@ review gates ou risco de claim sem evidencia.
 ### 9.1 Codex Executor Local
 
 ```text
-Voce e o executor local do projeto LiteLLM Killer.
+Voce e o executor local do projeto oxideLLM.
 
 Leia obrigatoriamente:
 - AGENTS.md

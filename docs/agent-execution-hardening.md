@@ -127,7 +127,7 @@ Nao criar agora:
 ### Codex Executor
 
 ```text
-Voce e o executor local do projeto LiteLLM Killer.
+Voce e o executor local do projeto oxideLLM.
 
 Leia obrigatoriamente:
 - AGENTS.md

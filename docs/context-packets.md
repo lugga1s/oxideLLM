@@ -9,7 +9,7 @@ Use these packets when assigning work to another agent.
 ## 1. Minimal Implementation Packet
 
 ```text
-You are working on LiteLLM Killer, a Rust LLM gateway.
+You are working on oxideLLM, a Rust LLM gateway.
 
 Read:
 - AGENTS.md

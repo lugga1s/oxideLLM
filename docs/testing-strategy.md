@@ -83,7 +83,7 @@ client disconnect storm
 CPU:
 
 ```bash
-perf record -g ./target/release/litellm-killer
+perf record -g ./target/release/oxidellm
 ```
 
 Context switches:
@@ -95,7 +95,7 @@ perf stat -e context-switches,cpu-migrations,cycles,instructions -p <PID>
 Heap:
 
 ```bash
-heaptrack ./target/release/litellm-killer
+heaptrack ./target/release/oxidellm
 ```
 
 ## 7. CI

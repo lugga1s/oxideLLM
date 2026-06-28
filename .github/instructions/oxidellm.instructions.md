@@ -2,7 +2,7 @@
 applyTo: "**"
 ---
 
-# LiteLLM Killer Repository Instructions
+# oxideLLM Repository Instructions
 
 Use `AGENTS.md` as the source of truth.
 

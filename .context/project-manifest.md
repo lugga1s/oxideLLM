@@ -1,4 +1,4 @@
-# Manifesto de Contexto Mestre: LiteLLM Killer
+# Manifesto de Contexto Mestre: oxideLLM
 
 Status: contexto estrategico do projeto  
 Finalidade: orientar decisoes tecnicas, posicionamento publico, narrativa de produto e prioridades de implementacao
@@ -7,7 +7,7 @@ Finalidade: orientar decisoes tecnicas, posicionamento publico, narrativa de pro
 
 ## 1. Identidade do Projeto
 
-O projeto, codinome **LiteLLM Killer**, e um gateway/proxy reverso unificado de LLMs construido para resolver gargalos severos de performance em ambientes corporativos de IA.
+O projeto, codinome **oxideLLM**, e um gateway/proxy reverso unificado de LLMs construido para resolver gargalos severos de performance em ambientes corporativos de IA.
 
 A tese central e simples: gateways tradicionais de IA, quando implementados sobre runtimes interpretados e acoplados a logging/tracing/persistencia sincronos, degradam drasticamente a vazao sob concorrencia alta. O projeto existe para substituir esse padrao por uma fundacao compilada, assincrona, orientada a baixo overhead, streaming eficiente e telemetria desacoplada.
 

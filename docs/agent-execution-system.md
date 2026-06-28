@@ -42,7 +42,7 @@ GEMINI.md
 DEEPSEEK.md
 CLAUDE.md
 .github/copilot-instructions.md
-.github/instructions/litellm-killer.instructions.md
+.github/instructions/oxidellm.instructions.md
 ```
 
 Rule:

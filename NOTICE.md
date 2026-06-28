@@ -1,6 +1,6 @@
 # Notice
 
-LiteLLM Killer
+oxideLLM
 
 Copyright (C) 2026
 

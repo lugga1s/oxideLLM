@@ -1,6 +1,6 @@
 # Especificacao Mestre de Gargalos e Design da Camada Proxy Base
 
-Codinome: **LiteLLM Killer**  
+Codinome: **oxideLLM**  
 Status: **documento tecnico mestre / base de arquitetura**  
 Escopo: **gateway de IA de alta performance para roteamento, streaming, normalizacao de protocolo e telemetria sem bloqueio**
 

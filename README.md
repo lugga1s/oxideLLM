@@ -1,4 +1,4 @@
-# LiteLLM Killer
+# oxideLLM
 
 Gateway/proxy reverso de LLMs em Rust, orientado por benchmarks, streaming eficiente e telemetria fora do caminho critico.
 
@@ -182,6 +182,22 @@ Voce pode validar a integracao funcional com o provedor real local **Ollama** ex
 ## Filosofia
 
 O projeto deve crescer por utilidade demonstravel. Nenhum claim de performance deve entrar no README publico sem benchmark reproduzivel, comando usado, ambiente e resultado salvo em artefato.
+
+## Apoio & Doacoes (Sponsors)
+
+O **oxideLLM** e um projeto open-source gratuito para uso local. A nossa estrategia de monetizacao e voluntaria e baseada no valor economizado (reducao de TCO de infraestrutura). Se o gateway economiza CPU, memoria e custos de API para a sua organizacao, considere apoiar o projeto:
+
+- [GitHub Sponsors](https://github.com/sponsors/lugga1s)
+- [Open Collective](https://opencollective.com/oxidellm) (planejado)
+- [Buy Me a Coffee](https://www.buymeacoffee.com/lugga1s) (planejado)
+
+### Nossos Patrocinadores (Sponsors)
+
+Abaixo estao listados os doadores que apoiam ativamente o projeto (atualizado de forma automatizada):
+
+<!-- sponsors-start -->
+*(Ainda nao ha doacoes registradas. Seja o primeiro a apoiar o projeto!)*
+<!-- sponsors-end -->
 
 ## Licenca
 
