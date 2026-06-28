@@ -30,6 +30,9 @@ async fn main() -> anyhow::Result<()> {
 
     let http_client = reqwest::Client::builder()
         .pool_max_idle_per_host(1000)
+        .connect_timeout(std::time::Duration::from_secs(5))
+        .timeout(std::time::Duration::from_secs(120))
+        .tcp_nodelay(true)
         .build()?;
 
     let (tx, rx) = telemetry::channel(cfg.telemetry_capacity);

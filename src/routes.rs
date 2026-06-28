@@ -10,6 +10,7 @@ use futures_util::StreamExt;
 use http_body_util::BodyExt;
 use reqwest::Client;
 use serde::Serialize;
+use tower_http::limit::RequestBodyLimitLayer;
 use tracing::warn;
 
 use crate::config::ResolvedUpstream;
@@ -45,11 +46,15 @@ struct ReadyResponse {
 
 // -- Router construction ----------------------------------------------
 
+/// Maximum request body size accepted by the gateway (10 MiB).
+const MAX_REQUEST_BODY_BYTES: usize = 10 * 1024 * 1024;
+
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
         .route("/v1/chat/completions", post(chat_completions))
+        .layer(RequestBodyLimitLayer::new(MAX_REQUEST_BODY_BYTES))
         .with_state(state)
 }
 
@@ -248,7 +253,7 @@ fn should_forward_header(name: &HeaderName) -> bool {
 }
 
 fn should_try_next_upstream(status: reqwest::StatusCode) -> bool {
-    status.as_u16() >= 400
+    matches!(status.as_u16(), 429 | 502 | 503 | 504)
 }
 
 #[cfg(test)]
@@ -381,6 +386,61 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(primary_hits.load(Ordering::Relaxed), 0);
         assert_eq!(secondary_hits.load(Ordering::Relaxed), 1);
+
+        primary_handle.abort();
+        secondary_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn chat_completions_does_not_failover_on_client_error() {
+        let primary_hits = Arc::new(AtomicUsize::new(0));
+        let secondary_hits = Arc::new(AtomicUsize::new(0));
+
+        let (primary_url, primary_handle) =
+            spawn_test_upstream(StatusCode::BAD_REQUEST, primary_hits.clone()).await;
+        let (secondary_url, secondary_handle) =
+            spawn_test_upstream(StatusCode::OK, secondary_hits.clone()).await;
+
+        let (telemetry, _rx) = telemetry::channel(64);
+        let upstream_health = UpstreamHealthState::new(2);
+        let state = AppState {
+            telemetry,
+            http_client: reqwest::Client::new(),
+            upstreams: vec![
+                ResolvedUpstream {
+                    id: "primary".to_string(),
+                    provider: "mock".to_string(),
+                    base_url: primary_url,
+                    priority: 0,
+                    health_path: "/healthz".to_string(),
+                },
+                ResolvedUpstream {
+                    id: "secondary".to_string(),
+                    provider: "mock".to_string(),
+                    base_url: secondary_url,
+                    priority: 10,
+                    health_path: "/healthz".to_string(),
+                },
+            ],
+            upstream_health,
+        };
+
+        let request = Request::builder()
+            .method("POST")
+            .uri("/v1/chat/completions")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(r#"{"stream":true}"#))
+            .expect("request should build");
+
+        let response = build_router(state)
+            .oneshot(request)
+            .await
+            .expect("gateway response should complete");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        assert_eq!(primary_hits.load(Ordering::Relaxed), 1);
+        assert_eq!(secondary_hits.load(Ordering::Relaxed), 0);
 
         primary_handle.abort();
         secondary_handle.abort();
