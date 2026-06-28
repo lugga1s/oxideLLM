@@ -137,11 +137,29 @@ Saida:
 
 Concluido: CI, licenca, templates, CONTRIBUTING, SECURITY, README com benchmark, preparacao de PR.
 
+## Stage 8: Resiliencia e Roteamento Multimodelo [NAO INICIADO]
+
+Objetivo:
+
+- suporte a multiplos upstreams configuraveis;
+- fallback/failover automatico em caso de falha;
+- health checking em background de provedores de IA.
+
+Saida:
+
+- gateway redireciona requisicao para upstream alternativo de forma transparente se o principal falhar;
+- status de saude dos upstreams monitorado ativamente.
+
+Concluido: nenhum
+
+Pendente: TC-022, TC-023, TC-024
+
 ## Resumo de Progresso
 
 ```text
 [##################] 100% do MVP funcional
 [##################] 100% do Alpha util
+[#                 ] ~10% do Beta util
 ```
 
 | Stage | Status | Bloqueio |
@@ -154,3 +172,4 @@ Concluido: CI, licenca, templates, CONTRIBUTING, SECURITY, README com benchmark,
 | 5 | Verde | nenhum |
 | 6 | Verde | nenhum |
 | 7 | Verde | nenhum |
+| 8 | Nao iniciado | nenhum |

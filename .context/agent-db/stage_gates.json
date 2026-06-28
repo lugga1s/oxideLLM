@@ -81,6 +81,16 @@
         "Gateway P99 is approximately flat against direct vLLM.",
         "TTFT overhead is documented."
       ]
+    },
+    {
+      "id": "stage-08-resilience-routing",
+      "name": "Resilience and Multi-upstream Routing",
+      "goal": "Support fallback upstreams and passive background health checks.",
+      "success": [
+        "Gateway parses list of prioritised upstreams.",
+        "Gateway transparently retries requests on fallback upstreams upon receiving errors >= 400.",
+        "Background worker monitors upstream health and excludes dead ones from routing."
+      ]
     }
   ]
 }

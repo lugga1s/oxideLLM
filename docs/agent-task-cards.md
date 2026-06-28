@@ -583,3 +583,76 @@ TTFT registrado
 erros mapeados
 ```
 
+---
+
+## TC-022: Multi-upstream Configuration
+
+Objetivo:
+
+```text
+permitir a configuracao de uma lista de upstreams ordenados por prioridade no arquivo TOML
+```
+
+Arquivos permitidos:
+
+```text
+src/config.rs
+examples/config.toml.example
+```
+
+Sucesso:
+
+```text
+configuracao suporta multiplos upstreams com id, base_url, provider e priority
+testes unitarios de parse da nova config passam
+```
+
+---
+
+## TC-023: Gateway Client-side Fallback & Failover
+
+Objetivo:
+
+```text
+adicionar logica de retry e desvio de requisicao para upstream secundario se o primario retornar erro (ex: 429 ou 5xx)
+```
+
+Arquivos permitidos:
+
+```text
+src/routes.rs
+src/stream.rs
+```
+
+Sucesso:
+
+```text
+se o primeiro upstream falha com status >= 400, o gateway tenta o proximo da lista de fallback de forma transparente
+teste unitario cobre o redirecionamento com sucesso
+```
+
+---
+
+## TC-024: Upstream Health Check Workers
+
+Objetivo:
+
+```text
+implementar worker em background que envia ping (/healthz ou similar) periodico para os upstreams cadastrados para marcar status como ativo/inativo
+```
+
+Arquivos permitidos:
+
+```text
+src/main.rs
+src/config.rs
+src/drain.rs
+```
+
+Sucesso:
+
+```text
+worker em background monitora upstreams e atualiza lista de upstreams saudaveis em memoria de forma thread-safe
+gateway pula upstreams offline nas tentativas de conexao
+```
+
