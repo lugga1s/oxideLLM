@@ -75,7 +75,7 @@ Concluido: TC-009, TC-010
 
 Nota: Telemetria em memoria totalmente implementada e testada com sucesso.
 
-## Stage 4: Profiling de Memoria [NAO INICIADO]
+## Stage 4: Profiling de Memoria [VERDE]
 
 Objetivo:
 
@@ -87,7 +87,7 @@ Saida:
 - relatorio de heap;
 - hotspots documentados.
 
-Requer: WSL2 ou Linux nativo (ver ADR-0007)
+Concluido: TC-015 (Relatorio salvo em benchmarks/results/stage-04-memory-validation.md)
 
 ## Stage 5: Micro-batching Local [VERDE]
 
@@ -150,7 +150,7 @@ Concluido: CI, licenca, templates, CONTRIBUTING, SECURITY, README com benchmark,
 | 1 | Verde | nenhum |
 | 2 | Verde | nenhum |
 | 3 | Verde | nenhum |
-| 4 | Nao iniciado | WSL2 profiling futuro |
+| 4 | Verde | nenhum |
 | 5 | Verde | nenhum |
 | 6 | Verde | nenhum |
 | 7 | Verde | nenhum |

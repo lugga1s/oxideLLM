@@ -323,7 +323,7 @@ cliente nao espera disco
 
 ---
 
-## TC-012: Ollama Upstream
+## TC-012: Ollama Upstream [DONE]
 
 Objetivo:
 
@@ -348,7 +348,7 @@ stream real via gateway
 
 ---
 
-## TC-013: vLLM Parity Runbook
+## TC-013: vLLM Parity Runbook [DONE]
 
 Objetivo:
 
@@ -402,7 +402,7 @@ PR draft criado ou bloqueio de auth/remoto reportado
 
 ---
 
-## TC-015: Performance Review
+## TC-015: Performance Review [DONE]
 
 Objetivo:
 
@@ -450,7 +450,7 @@ sem contradicao sobre stack, licenca, gates ou ordem de execucao
 
 ---
 
-## TC-017: Context Validation Script
+## TC-017: Context Validation Script [DONE]
 
 Objetivo:
 
@@ -558,7 +558,7 @@ resultado salvo em benchmarks/results/
 
 ---
 
-## TC-021: Ollama Integration Test
+## TC-021: Ollama Integration Test [DONE]
 
 Objetivo:
 

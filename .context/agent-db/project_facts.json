@@ -27,7 +27,7 @@
     "Benchmarks compare direct upstream versus gateway.",
     "Large payloads are not converted to strings unless required."
   ],
-  "current_stage": "Stage 2 - proxy-base-complete",
+  "current_stage": "Stage 7 - github-ready",
   "docs": {
     "manifest": ".context/project-manifest.md",
     "bottlenecks": ".context/bottlenecks.md",
