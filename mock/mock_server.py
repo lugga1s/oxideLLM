@@ -50,8 +50,11 @@ class Handler(BaseHTTPRequestHandler):
         return
 
 
+class HighCapacityHTTPServer(ThreadingHTTPServer):
+    request_queue_size = 1024
+
 if __name__ == "__main__":
-    server = ThreadingHTTPServer(("0.0.0.0", 9000), Handler)
+    server = HighCapacityHTTPServer(("0.0.0.0", 9000), Handler)
     print("mock SSE server listening on :9000", flush=True)
     server.serve_forever()
 

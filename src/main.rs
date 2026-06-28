@@ -2,23 +2,66 @@
 
 mod telemetry;
 
-use std::{convert::Infallible, net::SocketAddr, sync::Arc, time::SystemTime};
+use std::{net::SocketAddr, sync::Arc, time::SystemTime};
 
 use axum::{
     Json, Router,
+    body::Body,
     extract::State,
-    response::{
-        IntoResponse,
-        sse::{Event, KeepAlive, Sse},
-    },
+    response::IntoResponse,
     routing::{get, post},
 };
 use clap::Parser;
+use futures_util::StreamExt;
+use reqwest::Client;
 use serde::Serialize;
-use tokio_stream::{self as stream, Stream};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use tracing::{info, warn};
 
 use crate::telemetry::{TelemetryEvent, TelemetryQueue};
+
+struct TelemetryStreamGuard {
+    request_id: String,
+    started_at_ms: u64,
+    telemetry: Arc<TelemetryQueue>,
+}
+
+impl Drop for TelemetryStreamGuard {
+    fn drop(&mut self) {
+        let completed = TelemetryEvent::request_completed(
+            self.request_id.clone(),
+            self.started_at_ms,
+            unix_ms(),
+        );
+        let _ = self.telemetry.try_record(completed);
+    }
+}
+
+struct GuardedStream<S> {
+    inner: S,
+    _guard: TelemetryStreamGuard,
+}
+
+impl<S> GuardedStream<S> {
+    fn new(inner: S, guard: TelemetryStreamGuard) -> Self {
+        Self {
+            inner,
+            _guard: guard,
+        }
+    }
+}
+
+impl<S> futures_util::Stream for GuardedStream<S>
+where
+    S: futures_util::Stream + Unpin,
+{
+    type Item = S::Item;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.inner).poll_next(cx)
+    }
+}
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
@@ -36,6 +79,7 @@ struct Args {
 #[derive(Clone)]
 struct AppState {
     telemetry: Arc<TelemetryQueue>,
+    http_client: Client,
 }
 
 #[derive(Serialize)]
@@ -64,8 +108,13 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let addr: SocketAddr = format!("{}:{}", args.host, args.port).parse()?;
 
+    let http_client = reqwest::Client::builder()
+        .pool_max_idle_per_host(100)
+        .build()?;
+
     let state = AppState {
         telemetry: Arc::new(TelemetryQueue::new(args.telemetry_capacity)),
+        http_client,
     };
 
     let telemetry_worker = state.telemetry.clone();
@@ -107,7 +156,9 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
 
 async fn chat_completions(
     State(state): State<AppState>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    headers: axum::http::HeaderMap,
+    req_body: axum::body::Body,
+) -> Result<axum::response::Response, axum::http::StatusCode> {
     let request_id = uuid::Uuid::new_v4().to_string();
     let started_at_ms = unix_ms();
 
@@ -120,22 +171,48 @@ async fn chat_completions(
         warn!("telemetry queue full while recording request start");
     }
 
-    let completed = TelemetryEvent::request_completed(request_id, started_at_ms, unix_ms());
-    let _ = state.telemetry.try_record(completed);
+    let upstream_url = "http://localhost:9000/v1/chat/completions";
+    let mut upstream_req = state.http_client.post(upstream_url);
 
-    let events = vec![
-        Ok(Event::default().data(
-            r#"{"id":"mock","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":"hello"},"finish_reason":null}]}"#,
-        )),
-        Ok(Event::default().data(
-            r#"{"id":"mock","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":"stop"}]}"#,
-        )),
-        Ok(Event::default().data("[DONE]")),
-    ];
+    for (name, value) in headers.iter() {
+        if name != axum::http::header::HOST && name != axum::http::header::CONNECTION {
+            upstream_req = upstream_req.header(name.as_str(), value.as_bytes());
+        }
+    }
 
-    let stream = stream::iter(events);
+    let body_stream = req_body.into_data_stream();
+    let reqwest_body = reqwest::Body::wrap_stream(body_stream);
+    upstream_req = upstream_req.body(reqwest_body);
 
-    Sse::new(stream).keep_alive(KeepAlive::default())
+    let upstream_res = upstream_req.send().await.map_err(|e| {
+        warn!("upstream request failed: {}", e);
+        axum::http::StatusCode::BAD_GATEWAY
+    })?;
+
+    let mut response_builder = axum::response::Response::builder().status(upstream_res.status());
+
+    for (name, value) in upstream_res.headers().iter() {
+        if name != axum::http::header::TRANSFER_ENCODING && name != axum::http::header::CONNECTION {
+            response_builder = response_builder.header(name.as_str(), value.as_bytes());
+        }
+    }
+
+    let res_stream = upstream_res
+        .bytes_stream()
+        .map(|res| res.map_err(axum::Error::new));
+
+    let guard = TelemetryStreamGuard {
+        request_id,
+        started_at_ms,
+        telemetry: state.telemetry.clone(),
+    };
+
+    let guarded_stream = GuardedStream::new(res_stream, guard);
+    let axum_body = Body::from_stream(guarded_stream);
+
+    response_builder
+        .body(axum_body)
+        .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 async fn telemetry_drain_worker(queue: Arc<TelemetryQueue>) {
