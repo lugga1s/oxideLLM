@@ -5,13 +5,13 @@ mod telemetry;
 use std::{convert::Infallible, net::SocketAddr, sync::Arc, time::SystemTime};
 
 use axum::{
+    Json, Router,
     extract::State,
     response::{
-        sse::{Event, KeepAlive, Sse},
         IntoResponse,
+        sse::{Event, KeepAlive, Sse},
     },
     routing::{get, post},
-    Json, Router,
 };
 use clap::Parser;
 use serde::Serialize;
@@ -145,7 +145,11 @@ async fn telemetry_drain_worker(queue: Arc<TelemetryQueue>) {
         interval.tick().await;
         let drained = queue.drain_batch(1000);
         if !drained.is_empty() {
-            info!(events = drained.len(), drops = queue.dropped(), "telemetry batch drained");
+            info!(
+                events = drained.len(),
+                drops = queue.dropped(),
+                "telemetry batch drained"
+            );
         }
     }
 }
