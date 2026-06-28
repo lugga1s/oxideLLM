@@ -21,6 +21,19 @@ observacoes
 ## Resumos Oficiais
 
 - `alpha-v1-benchmark-summary.md`: reconciliacao oficial dos artefatos existentes para preparacao do alpha v1.
+- `stage-02-wsl2-ext4-20260628-summary.md`: rodada Stage 2 completa em WSL2, a partir do filesystem Linux, com 1000 VUs por 30s.
+
+## Script Automatizado WSL2
+
+Para rodar Stage 2 com mock, gateway e k6 no WSL2:
+
+```bash
+bash scripts/run_stage2_benchmark_wsl.sh
+```
+
+O script compila os binarios em release, sobe o mock na porta 9000, sobe o gateway na porta 8080, roda o benchmark direto e depois via gateway, e salva tres JSONs em `benchmarks/results/`.
+
+Para resultados mais limpos, rode a partir do filesystem Linux do WSL, por exemplo `~/oxidellm`, nao a partir de `/mnt/c/...`. O WSL emite um aviso de desempenho para cargas intensivas de E/S em unidades do Windows, e isso pode distorcer o benchmark.
 
 ## Baseline Direto
 
