@@ -78,18 +78,29 @@ async fn main() -> anyhow::Result<()> {
 
     let app = build_router(state.clone());
 
-    println!(r#"
+    println!(
+        r#"
               _     _      _    _    __  __ 
   ___| |__ (_)  __| |__| |  |  \/  |
  / _ \ \'_ \| | / _` / _` |  | |\/| |
 |  __/ |_) | || (_| (_| |  | |  | |
  \___|_.__/|_| \__,_\__,_|  |_|  |_|
   High-Performance LLM Gateway
-"#);
+"#
+    );
     println!("* Server running on http://{}", addr);
-    println!("* Primary Upstream: {} ({})", primary_upstream_url, primary_provider);
-    println!("* Active Upstreams: {} registered with background health checking", upstream_count);
-    println!("* Telemetry Config: capacity={}, batch_size={}, interval_ms={}ms", cfg.telemetry_capacity, cfg.telemetry_batch_size, cfg.telemetry_flush_interval_ms);
+    println!(
+        "* Primary Upstream: {} ({})",
+        primary_upstream_url, primary_provider
+    );
+    println!(
+        "* Active Upstreams: {} registered with background health checking",
+        upstream_count
+    );
+    println!(
+        "* Telemetry Config: capacity={}, batch_size={}, interval_ms={}ms",
+        cfg.telemetry_capacity, cfg.telemetry_batch_size, cfg.telemetry_flush_interval_ms
+    );
     println!("* Log Destination: {}", telemetry_log_path);
     println!("\noxideLLM is free and open-source under AGPL-3.0.");
     println!("Support voluntary development: https://github.com/sponsors/lugga1s");
