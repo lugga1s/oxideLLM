@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+//! oxideLLM - High-performance LLM gateway/proxy
+
+#![warn(missing_docs)]
+
 mod config;
 mod drain;
+mod models;
+mod proxy;
 mod routes;
+mod sse;
 mod stream;
 mod telemetry;
 
@@ -47,12 +54,14 @@ async fn main() -> anyhow::Result<()> {
     let upstream_count = cfg.upstreams.len();
     let upstreams = cfg.upstreams;
     let upstream_health = UpstreamHealthState::new(upstream_count);
+    let total_requests = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
 
     let state = AppState {
         telemetry: tx.clone(),
         http_client: http_client.clone(),
         upstreams: upstreams.clone(),
         upstream_health: upstream_health.clone(),
+        total_requests,
     };
 
     let telemetry_log_path = cfg.telemetry_log_path.clone();
