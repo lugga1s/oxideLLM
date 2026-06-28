@@ -29,4 +29,5 @@ tower = "0.5"
 [profile.release]
 codegen-units = 1
 lto = "thin"
-strip = "symbols"
+debug = true
+strip = false

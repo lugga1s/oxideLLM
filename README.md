@@ -130,6 +130,33 @@ cargo run --release -- --upstream-base-url https://api.groq.com/openai --upstrea
 k6 run -e GROQ_API_KEY=$GROQ_API_KEY k6/groq-integration.js
 ```
 
+### Validacao com Provedor Real Local (Ollama)
+
+Você pode validar a integração funcional com o provedor real local **Ollama** executando um modelo local (como `tinyllama` ou `llama3`).
+
+1. Garanta que o Ollama esteja instalado e rodando em sua máquina:
+   ```bash
+   ollama pull tinyllama
+   ```
+
+2. Suba o gateway apontando para o Ollama como upstream:
+   ```bash
+   cargo run --release -- --upstream-provider ollama
+   ```
+   *(Nota: O gateway irá associar automaticamente a URL padrão do Ollama: `http://127.0.0.1:11434`)*
+
+3. Faça uma requisição de chat streaming via gateway para testar a resposta:
+   ```bash
+   curl -N -X POST http://127.0.0.1:8080/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{
+       "model": "tinyllama",
+       "messages": [{"role": "user", "content": "Olá, você é o tinyllama?"}],
+       "stream": true
+     }'
+   ```
+
+
 ## Documentacao Central
 
 - `AGENTS.md`: regras de operacao para agentes autonomos.

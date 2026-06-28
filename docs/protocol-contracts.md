@@ -159,6 +159,14 @@ Motivo:
 - simplifica reproducibilidade;
 - permite validar streaming real.
 
+Integracao no Gateway:
+
+- **Provedor**: `ollama`
+- **Porta Padrao**: `11434`
+- **Endpoint**: `/v1/chat/completions` (OpenAI-compatible)
+- **Base URL Padrao**: `http://127.0.0.1:11434`
+- **Pass-through**: Payloads de request e streams de response sao encaminhados diretamente sem reidratacao ou modificacao de JSON.
+
 ---
 
 ## 8. Headers
