@@ -2,6 +2,8 @@
 
 //! HTTP routes and handlers for oxideLLM gateway.
 
+use std::borrow::Cow;
+
 use axum::body::Body;
 use axum::extract::State;
 use axum::response::IntoResponse;
@@ -10,7 +12,7 @@ use axum::{Json, Router};
 use futures_util::StreamExt;
 use http_body_util::BodyExt;
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tower_http::limit::RequestBodyLimitLayer;
 use tracing::{info, warn};
 
@@ -63,6 +65,12 @@ pub struct AnalyticsResponse {
     pub dropped_events: u64,
     /// Maximum capacity of the telemetry buffer queue.
     pub telemetry_capacity: usize,
+}
+
+#[derive(Deserialize)]
+struct ModelRouteView<'a> {
+    #[serde(borrow)]
+    model: Cow<'a, str>,
 }
 
 // -- Router construction ----------------------------------------------
@@ -149,10 +157,7 @@ async fn chat_completions(
     };
     guard.bytes_in = body_bytes.len();
 
-    // Extract the model name from the JSON body if possible
-    let model = serde_json::from_slice::<crate::models::ChatCompletionRequest>(&body_bytes)
-        .ok()
-        .map(|req| req.model);
+    let model = extract_model_for_routing(&body_bytes);
 
     let upstream_res =
         match send_with_failover(&state, &headers, body_bytes, model.as_deref()).await {
@@ -181,7 +186,7 @@ async fn chat_completions(
     }
 
     for (name, value) in upstream_res.headers().iter() {
-        if name != axum::http::header::TRANSFER_ENCODING && name != axum::http::header::CONNECTION {
+        if crate::proxy::should_forward_response_header(name) {
             response_builder = response_builder.header(name.as_str(), value.as_bytes());
         }
     }
@@ -221,27 +226,12 @@ async fn send_with_failover(
         ));
     }
 
-    // Get upstreams ordered with model matching prioritized first
-    let mut indexed_upstreams: Vec<(usize, ResolvedUpstream)> =
-        state.upstreams.iter().cloned().enumerate().collect();
+    let ordered_indices = crate::proxy::ordered_upstream_indices(&state.upstreams, model);
 
-    if let Some(m) = model {
-        let is_gpt = m.contains("gpt") || m.contains("openai");
-        let is_llama = m.contains("llama") || m.contains("ollama");
-        let is_claude = m.contains("claude") || m.contains("anthropic");
+    for (index_in_loop, orig_index) in ordered_indices.iter().copied().enumerate() {
+        let upstream = &state.upstreams[orig_index];
 
-        if let Some(idx) = indexed_upstreams.iter().position(|(_, u)| {
-            (is_gpt && (u.provider.contains("openai") || u.id.contains("openai")))
-                || (is_llama && (u.provider.contains("ollama") || u.id.contains("ollama")))
-                || (is_claude && (u.provider.contains("anthropic") || u.id.contains("anthropic")))
-        }) {
-            let matched = indexed_upstreams.remove(idx);
-            indexed_upstreams.insert(0, matched);
-        }
-    }
-
-    for (index_in_loop, (orig_index, upstream)) in indexed_upstreams.iter().enumerate() {
-        if !state.upstream_health.is_healthy(*orig_index) {
+        if !state.upstream_health.is_healthy(orig_index) {
             warn!(
                 upstream_id = %upstream.id,
                 provider = %upstream.provider,
@@ -250,10 +240,10 @@ async fn send_with_failover(
             continue;
         }
 
-        let has_next_healthy = indexed_upstreams
+        let has_next_healthy = ordered_indices
             .iter()
             .skip(index_in_loop + 1)
-            .any(|(o_idx, _)| state.upstream_health.is_healthy(*o_idx));
+            .any(|o_idx| state.upstream_health.is_healthy(*o_idx));
 
         let upstream_url = crate::proxy::chat_completions_url(upstream);
         let mut upstream_req = state.http_client.post(&upstream_url);
@@ -279,7 +269,7 @@ async fn send_with_failover(
                     continue;
                 }
 
-                if *orig_index > 0 {
+                if orig_index > 0 {
                     info!(
                         upstream_id = %upstream.id,
                         provider = %upstream.provider,
@@ -313,6 +303,12 @@ async fn send_with_failover(
         axum::http::StatusCode::BAD_GATEWAY,
         "upstream_failover_exhausted".to_string(),
     ))
+}
+
+fn extract_model_for_routing(body: &[u8]) -> Option<String> {
+    serde_json::from_slice::<ModelRouteView<'_>>(body)
+        .ok()
+        .map(|view| view.model.into_owned())
 }
 
 #[cfg(test)]
@@ -539,6 +535,15 @@ mod tests {
             .expect("gateway response should complete");
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn extract_model_for_routing_reads_only_route_hint() {
+        let model = extract_model_for_routing(
+            br#"{"model":"LLaMA3","messages":[{"role":"user","content":"large prompt"}],"stream":true}"#,
+        );
+
+        assert_eq!(model.as_deref(), Some("LLaMA3"));
     }
 
     async fn spawn_test_upstream(

@@ -2,8 +2,6 @@
 
 //! OpenAI-compatible model representations for oxideLLM.
 
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 /// Represents a message in a chat completion request or response.

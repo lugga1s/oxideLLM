@@ -2,8 +2,6 @@
 
 //! SSE (Server-Sent Events) parser utility for oxideLLM.
 
-#![allow(dead_code)]
-
 /// A parsed Server-Sent Event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SseEvent {
@@ -18,6 +16,11 @@ pub struct SseEvent {
 }
 
 /// A parser state machine for SSE streams.
+///
+/// The gateway forwards upstream bytes directly to the client; this parser is a
+/// side utility for tests and lightweight metadata extraction where complete SSE
+/// events are useful. It keeps only the incomplete tail between calls to
+/// [`SseParser::feed`].
 #[derive(Default)]
 pub struct SseParser {
     buffer: String,

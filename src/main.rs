@@ -4,23 +4,13 @@
 
 #![warn(missing_docs)]
 
-mod config;
-mod drain;
-mod models;
-mod proxy;
-mod routes;
-mod sse;
-mod stream;
-mod telemetry;
-
 use std::net::SocketAddr;
-use std::time::SystemTime;
 
+use oxidellm::config::load_config;
+use oxidellm::drain::{UpstreamHealthState, telemetry_drain_worker, upstream_health_worker};
+use oxidellm::routes::{AppState, build_router};
+use oxidellm::telemetry;
 use tracing::info;
-
-use crate::config::load_config;
-use crate::drain::{UpstreamHealthState, telemetry_drain_worker, upstream_health_worker};
-use crate::routes::{AppState, build_router};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -171,24 +161,17 @@ async fn shutdown_signal() {
     }
 }
 
-pub(crate) fn unix_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
     use std::time::Duration;
 
-    use crate::telemetry::{TelemetryBatch, TelemetryEvent};
+    use oxidellm::telemetry::{TelemetryBatch, TelemetryEvent};
 
     #[tokio::test]
     async fn test_telemetry_drain_worker_batching_and_shutdown() {
-        let (tx, rx) = crate::telemetry::channel(100);
+        let (tx, rx) = telemetry::channel(100);
         let log_path = format!("test_telemetry_{}.jsonl", uuid::Uuid::new_v4());
 
         // Push 3 events
