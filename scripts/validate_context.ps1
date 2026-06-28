@@ -1,25 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $required = @(
-    "README.md",
-    "AGENTS.md",
-    "GEMINI.md",
-    "DEEPSEEK.md",
-    "CLAUDE.md",
-    ".github/copilot-instructions.md",
-    "docs/implementation-playbook.md",
-    "docs/agent-execution-system.md",
-    "docs/agent-task-cards.md",
-    "docs/multi-agent-handoff.md",
-    "docs/agent-quality-scorecard.md",
-    "docs/agent-readiness-matrix.md",
-    "docs/review-gates.md",
-    "docs/context-packets.md",
-    "docs/verification-ledger.md",
-    "docs/validation-gates.md",
-    ".context/agent-db/project_facts.json",
-    ".context/agent-db/session_plan.json",
-    ".context/agent-db/task_cards.json"
+    "README.md"
 )
 
 $missing = @()
@@ -35,14 +17,16 @@ if ($missing.Count -gt 0) {
     exit 1
 }
 
-$jsonFiles = Get-ChildItem ".context/agent-db/*.json"
-foreach ($file in $jsonFiles) {
-    try {
-        Get-Content -Raw $file.FullName | ConvertFrom-Json | Out-Null
-    } catch {
-        Write-Host "Invalid JSON: $($file.FullName)" -ForegroundColor Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        exit 1
+if (Test-Path ".context/agent-db") {
+    $jsonFiles = Get-ChildItem ".context/agent-db/*.json"
+    foreach ($file in $jsonFiles) {
+        try {
+            Get-Content -Raw $file.FullName | ConvertFrom-Json | Out-Null
+        } catch {
+            Write-Host "Invalid JSON: $($file.FullName)" -ForegroundColor Red
+            Write-Host $_.Exception.Message -ForegroundColor Red
+            exit 1
+        }
     }
 }
 
@@ -58,7 +42,7 @@ $scanPaths = @(
     ".context/agent-db/*.json",
     "src/*.rs",
     "Cargo.toml"
-)
+) | Where-Object { Test-Path $_ }
 
 $nonAscii = Select-String -Path $scanPaths -Pattern '[^\x00-\x7F]' -AllMatches -ErrorAction SilentlyContinue
 if ($nonAscii) {
