@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+//! Async response stream wrapper with time-to-first-token accumulator.
+
 use std::pin::Pin;
 use std::task::{Context, Poll};
 

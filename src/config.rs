@@ -1,126 +1,189 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+//! Configuration parsing, validation, and resolution logic for oxideLLM.
+
 use clap::Parser;
 use serde::Deserialize;
 
 // -- TOML config structs ----------------------------------------------
 
+/// Configuration layout matching the TOML configuration file schema.
 #[derive(Debug, Deserialize, Default)]
 pub struct ConfigFile {
+    /// Server hosting settings.
     pub server: Option<ServerConfig>,
+    /// Legacy single upstream configuration parameter.
     pub upstream: Option<UpstreamConfig>,
+    /// List of multiple configured upstreams.
     #[serde(default)]
     pub upstreams: Vec<UpstreamConfig>,
+    /// Health checking intervals and timeouts.
     pub upstream_health: Option<UpstreamHealthConfig>,
+    /// Telemetry queue capacity and log flush settings.
     pub telemetry: Option<TelemetryConfig>,
 }
 
+/// Server host and port configuration options.
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
+    /// Bind address interface host.
     pub host: Option<String>,
+    /// Bind address port.
     pub port: Option<u16>,
+    /// Limit on maximum request body size.
     pub request_body_max_bytes: Option<usize>,
+    /// TCP connection timeout to upstream servers.
     pub upstream_connect_timeout_ms: Option<u64>,
+    /// Request roundtrip timeout to upstream servers.
     pub upstream_request_timeout_ms: Option<u64>,
 }
 
+/// Individual upstream target configuration options.
 #[derive(Debug, Deserialize, Clone)]
 pub struct UpstreamConfig {
+    /// Unique identifier for the upstream.
     pub id: Option<String>,
+    /// Target provider name (e.g. "ollama", "openai").
     pub provider: Option<String>,
+    /// Base HTTP URL of upstream endpoint.
     pub base_url: Option<String>,
+    /// Priority level (lower values take precedence).
     pub priority: Option<u16>,
+    /// Custom path for health checks.
     pub health_path: Option<String>,
 }
 
+/// Upstream periodic health checker worker configuration options.
 #[derive(Debug, Deserialize)]
 pub struct UpstreamHealthConfig {
+    /// Periodic frequency interval for ping checks.
     pub interval_ms: Option<u64>,
+    /// Timeout limit for healthy response validation.
     pub timeout_ms: Option<u64>,
 }
 
+/// Telemetry channel capacity and disk sync settings.
 #[derive(Debug, Deserialize)]
 pub struct TelemetryConfig {
+    /// In-memory queue slot count.
     pub capacity: Option<usize>,
+    /// Log output destination file path.
     pub log_path: Option<String>,
+    /// Maximum count of events in each batched disk flush.
     pub batch_size: Option<usize>,
+    /// Periodic interval constraint for flushing remaining events to disk.
     pub flush_interval_ms: Option<u64>,
 }
 
 // -- CLI args ---------------------------------------------------------
 
+/// Command line arguments parsed using clap.
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
 pub struct Args {
+    /// Custom path to config file.
     #[arg(long, env = "LLMK_CONFIG")]
     pub config: Option<String>,
 
+    /// Host name to bind to.
     #[arg(long, env = "LLMK_HOST")]
     pub host: Option<String>,
 
+    /// Port to bind to.
     #[arg(long, env = "LLMK_PORT")]
     pub port: Option<u16>,
 
+    /// Default upstream provider name.
     #[arg(long, env = "LLMK_UPSTREAM_PROVIDER")]
     pub upstream_provider: Option<String>,
 
+    /// Default upstream base URL.
     #[arg(long, env = "LLMK_UPSTREAM_BASE_URL")]
     pub upstream_base_url: Option<String>,
 
+    /// Maximum size of client request payloads.
     #[arg(long, env = "LLMK_REQUEST_BODY_MAX_BYTES")]
     pub request_body_max_bytes: Option<usize>,
 
+    /// TCP connect timeout to upstreams.
     #[arg(long, env = "LLMK_UPSTREAM_CONNECT_TIMEOUT_MS")]
     pub upstream_connect_timeout_ms: Option<u64>,
 
+    /// Roundtrip request timeout to upstreams.
     #[arg(long, env = "LLMK_UPSTREAM_REQUEST_TIMEOUT_MS")]
     pub upstream_request_timeout_ms: Option<u64>,
 
+    /// Upstream health check polling interval.
     #[arg(long, env = "LLMK_UPSTREAM_HEALTH_INTERVAL_MS")]
     pub upstream_health_interval_ms: Option<u64>,
 
+    /// Upstream health check timeout.
     #[arg(long, env = "LLMK_UPSTREAM_HEALTH_TIMEOUT_MS")]
     pub upstream_health_timeout_ms: Option<u64>,
 
+    /// In-memory buffer size for telemetry events.
     #[arg(long, env = "LLMK_TELEMETRY_CAPACITY")]
     pub telemetry_capacity: Option<usize>,
 
+    /// File path to write analytics logs.
     #[arg(long, env = "LLMK_TELEMETRY_LOG_PATH")]
     pub telemetry_log_path: Option<String>,
 
+    /// Max size of a single telemetry batch write.
     #[arg(long, env = "LLMK_TELEMETRY_BATCH_SIZE")]
     pub telemetry_batch_size: Option<usize>,
 
+    /// Telemetry log sync frequency.
     #[arg(long, env = "LLMK_TELEMETRY_FLUSH_INTERVAL_MS")]
     pub telemetry_flush_interval_ms: Option<u64>,
 }
 
 // -- Resolved config --------------------------------------------------
 
+/// Fully resolved config structure merging CLI, TOML, and default parameters.
 pub struct ResolvedConfig {
+    /// Bind address host interface.
     pub host: String,
+    /// Bind address port.
     pub port: u16,
+    /// Fallback provider label.
     pub upstream_provider: String,
+    /// Fallback base URL.
     pub upstream_base_url: String,
-    #[allow(dead_code)]
+    /// Priority ordered list of configured upstreams.
     pub upstreams: Vec<ResolvedUpstream>,
+    /// Maximum allowed request body size in bytes.
     pub request_body_max_bytes: usize,
+    /// TCP connection timeout to upstream.
     pub upstream_connect_timeout_ms: u64,
+    /// Upstream HTTP request roundtrip timeout.
     pub upstream_request_timeout_ms: u64,
+    /// Interval between health check worker polls.
     pub upstream_health_interval_ms: u64,
+    /// Health check timeout limit.
     pub upstream_health_timeout_ms: u64,
+    /// Telemetry queue capacity.
     pub telemetry_capacity: usize,
+    /// Log destination path.
     pub telemetry_log_path: String,
+    /// Batch size for event flushes.
     pub telemetry_batch_size: usize,
+    /// Max milliseconds interval between telemetry flushes.
     pub telemetry_flush_interval_ms: u64,
 }
 
+/// Resolved target upstream instance details.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedUpstream {
+    /// Unique key name.
     pub id: String,
+    /// Provider type (e.g. "ollama", "openai").
     pub provider: String,
+    /// Upstream HTTP address.
     pub base_url: String,
+    /// Priority sorting key.
     pub priority: u16,
+    /// Endpoints targeted for ping checking.
     pub health_path: String,
 }
 

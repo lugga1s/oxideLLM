@@ -11,7 +11,7 @@ Seu aplicativo precisa de inteligencia artificial, mas voce:
 * **Uma unica API compativel com OpenAI**: Integre uma vez, use qualquer provedor suportado.
 * **Roteamento inteligente e fallback automatico**: Se o provedor principal falhar, o gateway desvia a requisicao para um upstream ativo de forma transparente (failover dinamico).
 * **Telemetria analitica assincrona**: Metricas de performance (TTFT, latencia, bytes, status) sao extraidas e salvas em background por micro-batching sem bloquear a thread que responde ao cliente.
-* **Tudo em Rust**: Distribuido como um binario unico, com baixissimo consumo de recursos (CPU/memoria) e overhead de RPS < 2% no pass-through.
+* **Tudo em Rust**: Distribuido como um binario unico, com foco em streaming incremental, baixo overhead operacional e validacao por benchmarks reproduziveis.
 
 ---
 
@@ -27,6 +27,15 @@ cargo run -- --host 127.0.0.1 --port 8080
 * `GET  /healthz` - Status de saude do gateway.
 * `GET  /readyz` - Prontidao do gateway.
 * `POST /v1/chat/completions` - Roteamento de chat streaming.
+
+---
+
+## Recursos do Projeto
+
+* [Guia de contribuicao](CONTRIBUTING.md) - setup local, padrao de branches, commits e checklist de PR.
+* [Politica de seguranca](SECURITY.md) - como reportar vulnerabilidades de forma responsavel.
+* [Exemplos de configuracao](examples/README.md) - TOMLs prontos para Ollama local e multi-provider com failover.
+* [Gates de validacao](docs/validation-gates.md) - contrato de qualidade e evidencia para testes e benchmarks.
 
 ---
 
@@ -178,7 +187,7 @@ O projeto contem suites de benchmark executadas sob alta carga com k6. A analise
 Para garantir que o gateway esta funcionando perfeitamente e em conformidade com as regras de qualidade do projeto, voce pode rodar os testes locais.
 
 ### 1. Testes Unitarios e de Integracao (Rust)
-A suite contem 14 testes cobrindo parsing de multiplos upstreams, concorrencia, micro-batching de telemetria, deteccao ativa de falhas pelo health worker e failover transparente.
+A suite cobre parsing de multiplos upstreams, modelos OpenAI-compatible, SSE, proxy/failover, concorrencia, micro-batching de telemetria, deteccao ativa de falhas pelo health worker e rotas de integracao.
 
 ```bash
 cargo test --all
@@ -212,13 +221,15 @@ Usa **AGPL-3.0-or-later**. Consulte [licensing-strategy.md](file:///docs/licensi
 ---
 
 <details>
-<summary><b>Documentacao de Contribuicao (Clique para expandir)</b></summary>
+<summary><b>Documentacao Tecnica (Clique para expandir)</b></summary>
 
-> Os documentos abaixo sao manuais internos de engenharia, mantidos fora do repositorio publico.
-> Contribuidores com acesso ao ambiente de desenvolvimento local encontram esses arquivos na raiz do projeto.
+> Os documentos abaixo sao manuais de engenharia usados para manter o projeto alinhado entre humanos e agentes.
 
 Aqui estao todos os manuais tecnicos que descrevem o funcionamento interno do gateway para desenvolvedores que desejam contribuir:
 
+* `CONTRIBUTING.md` - Guia de contribuicao e checklist de PR.
+* `SECURITY.md` - Politica de seguranca e reporte responsavel.
+* `examples/README.md` - Guia dos exemplos de configuracao.
 * `AGENTS.md` - Instrucoes gerais para agentes autonomos de IA.
 * `docs/architecture.md` - Blueprint de arquitetura Rust.
 * `docs/implementation-playbook.md` - Historico e etapas de implementacao.

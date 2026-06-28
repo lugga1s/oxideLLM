@@ -1,0 +1,23 @@
+[server]
+host = "127.0.0.1"
+port = 8080
+request_body_max_bytes = 10485760
+upstream_connect_timeout_ms = 5000
+upstream_request_timeout_ms = 120000
+
+[[upstreams]]
+id = "ollama-local"
+provider = "ollama"
+base_url = "http://127.0.0.1:11434"
+priority = 10
+health_path = "/api/tags"
+
+[upstream_health]
+interval_ms = 5000
+timeout_ms = 1000
+
+[telemetry]
+capacity = 65536
+log_path = "telemetry_events.jsonl"
+batch_size = 1000
+flush_interval_ms = 500

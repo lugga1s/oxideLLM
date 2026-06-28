@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+//! Background workers for upstream health monitoring and telemetry log draining.
+
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
@@ -18,18 +20,21 @@ use crate::unix_ms;
 
 // -- Upstream health worker ------------------------------------------
 
+/// Thread-safe tracking state of active/inactive upstream hosts.
 #[derive(Clone, Debug)]
 pub struct UpstreamHealthState {
     states: Arc<Vec<AtomicBool>>,
 }
 
 impl UpstreamHealthState {
+    /// Creates a new `UpstreamHealthState` tracking the health of `upstream_count` hosts.
     pub fn new(upstream_count: usize) -> Self {
         Self {
             states: Arc::new((0..upstream_count).map(|_| AtomicBool::new(true)).collect()),
         }
     }
 
+    /// Queries whether the upstream at `index` is healthy.
     pub fn is_healthy(&self, index: usize) -> bool {
         self.states
             .get(index)
@@ -37,12 +42,14 @@ impl UpstreamHealthState {
             .unwrap_or(false)
     }
 
+    /// Sets the health state of upstream at `index`, returning the previous health status.
     pub fn set_healthy(&self, index: usize, healthy: bool) -> Option<bool> {
         self.states
             .get(index)
             .map(|state| state.swap(healthy, Ordering::Relaxed))
     }
 
+    /// Returns the total count of currently healthy upstreams.
     pub fn healthy_count(&self) -> usize {
         self.states
             .iter()
@@ -51,6 +58,7 @@ impl UpstreamHealthState {
     }
 }
 
+/// Periodic background worker that queries upstream health endpoints to update upstream status.
 pub async fn upstream_health_worker(
     http_client: Client,
     upstreams: Vec<ResolvedUpstream>,

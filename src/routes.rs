@@ -1,42 +1,54 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+//! HTTP routes and handlers for oxideLLM gateway.
+
+use std::borrow::Cow;
+
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::HeaderName;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::StreamExt;
 use http_body_util::BodyExt;
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tower_http::limit::RequestBodyLimitLayer;
 use tracing::{info, warn};
 
 use crate::config::ResolvedUpstream;
 use crate::drain::UpstreamHealthState;
 use crate::stream::{GuardedStream, TelemetryStreamGuard};
-use crate::telemetry::{TelemetryEvent, TelemetrySender};
+use crate::telemetry::TelemetrySender;
 use crate::unix_ms;
 
 // -- Shared application state ----------------------------------------
 
+/// Shared application state across HTTP routes.
 #[derive(Clone)]
 pub struct AppState {
+    /// Sender channel for telemetry events.
     pub telemetry: TelemetrySender,
+    /// HTTP client for proxying requests.
     pub http_client: Client,
+    /// Configured upstreams.
     pub upstreams: Vec<ResolvedUpstream>,
+    /// Thread-safe status of upstream health check workers.
     pub upstream_health: UpstreamHealthState,
+    /// Atomic counter tracking total requests processed.
+    pub total_requests: std::sync::Arc<std::sync::atomic::AtomicU64>,
 }
 
 // -- Response types ---------------------------------------------------
 
+/// Response payload for the /healthz endpoint.
 #[derive(Serialize)]
 struct HealthResponse {
     status: &'static str,
     service: &'static str,
 }
 
+/// Response payload for the /readyz endpoint.
 #[derive(Serialize)]
 struct ReadyResponse {
     status: &'static str,
@@ -44,12 +56,31 @@ struct ReadyResponse {
     telemetry_drops: u64,
 }
 
+/// Response payload for the /analytics endpoint.
+#[derive(Serialize)]
+pub struct AnalyticsResponse {
+    /// Total requests received by the gateway.
+    pub total_requests: u64,
+    /// Count of telemetry events dropped due to buffer capacity limit.
+    pub dropped_events: u64,
+    /// Maximum capacity of the telemetry buffer queue.
+    pub telemetry_capacity: usize,
+}
+
+#[derive(Deserialize)]
+struct ModelRouteView<'a> {
+    #[serde(borrow)]
+    model: Cow<'a, str>,
+}
+
 // -- Router construction ----------------------------------------------
 
+/// Builds the Axum router for the gateway with all routes registered.
 pub fn build_router(state: AppState, body_limit_bytes: usize) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
+        .route("/analytics", get(analytics))
         .route("/v1/chat/completions", post(chat_completions))
         .layer(RequestBodyLimitLayer::new(body_limit_bytes))
         .with_state(state)
@@ -57,6 +88,7 @@ pub fn build_router(state: AppState, body_limit_bytes: usize) -> Router {
 
 // -- Handlers ---------------------------------------------------------
 
+/// Handler for the /healthz endpoint.
 async fn healthz() -> impl IntoResponse {
     Json(HealthResponse {
         status: "ok",
@@ -64,6 +96,7 @@ async fn healthz() -> impl IntoResponse {
     })
 }
 
+/// Handler for the /readyz endpoint.
 async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     Json(ReadyResponse {
         status: "ready",
@@ -72,6 +105,18 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     })
 }
 
+/// Handler for the /analytics endpoint.
+pub async fn analytics(State(state): State<AppState>) -> impl IntoResponse {
+    Json(AnalyticsResponse {
+        total_requests: state
+            .total_requests
+            .load(std::sync::atomic::Ordering::Relaxed),
+        dropped_events: state.telemetry.dropped(),
+        telemetry_capacity: state.telemetry.capacity(),
+    })
+}
+
+/// Handler for the OpenAI-compatible /v1/chat/completions endpoint.
 async fn chat_completions(
     State(state): State<AppState>,
     headers: axum::http::HeaderMap,
@@ -81,10 +126,9 @@ async fn chat_completions(
     let started_at_ms = unix_ms();
     let started_at_mono = tokio::time::Instant::now();
 
-    state.telemetry.try_record(TelemetryEvent::request_started(
-        request_id.clone(),
-        started_at_ms,
-    ));
+    state
+        .total_requests
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
     let mut guard = TelemetryStreamGuard {
         request_id,
@@ -108,16 +152,23 @@ async fn chat_completions(
     };
     guard.bytes_in = body_bytes.len();
 
-    let upstream_res = match send_with_failover(&state, &headers, body_bytes).await {
-        Ok((res, upstream_id)) => {
-            guard.upstream_id = Some(upstream_id);
-            res
-        }
-        Err((status, error_class)) => {
-            guard.error_class = Some(error_class);
-            return Err(status);
-        }
+    let model = if state.upstreams.len() > 1 {
+        extract_model_for_routing(&body_bytes)
+    } else {
+        None
     };
+
+    let upstream_res =
+        match send_with_failover(&state, &headers, body_bytes, model.as_deref()).await {
+            Ok((res, upstream_id)) => {
+                guard.upstream_id = Some(upstream_id);
+                res
+            }
+            Err((status, error_class)) => {
+                guard.error_class = Some(error_class);
+                return Err(status);
+            }
+        };
 
     let status_code = upstream_res.status();
     if !status_code.is_success() {
@@ -134,7 +185,7 @@ async fn chat_completions(
     }
 
     for (name, value) in upstream_res.headers().iter() {
-        if name != axum::http::header::TRANSFER_ENCODING && name != axum::http::header::CONNECTION {
+        if crate::proxy::should_forward_response_header(name) {
             response_builder = response_builder.header(name.as_str(), value.as_bytes());
         }
     }
@@ -151,10 +202,12 @@ async fn chat_completions(
         .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+/// Sends the request to the best upstream with transparent failover support.
 async fn send_with_failover(
     state: &AppState,
     headers: &axum::http::HeaderMap,
     body: bytes::Bytes,
+    model: Option<&str>,
 ) -> Result<(reqwest::Response, String), (axum::http::StatusCode, String)> {
     if state.upstreams.is_empty() {
         warn!("no upstreams configured");
@@ -172,8 +225,12 @@ async fn send_with_failover(
         ));
     }
 
-    for (index, upstream) in state.upstreams.iter().enumerate() {
-        if !state.upstream_health.is_healthy(index) {
+    let ordered_indices = crate::proxy::ordered_upstream_indices(&state.upstreams, model);
+
+    for (index_in_loop, orig_index) in ordered_indices.iter().copied().enumerate() {
+        let upstream = &state.upstreams[orig_index];
+
+        if !state.upstream_health.is_healthy(orig_index) {
             warn!(
                 upstream_id = %upstream.id,
                 provider = %upstream.provider,
@@ -182,12 +239,16 @@ async fn send_with_failover(
             continue;
         }
 
-        let has_next_healthy = has_next_healthy_upstream(state, index);
-        let upstream_url = chat_completions_url(upstream);
+        let has_next_healthy = ordered_indices
+            .iter()
+            .skip(index_in_loop + 1)
+            .any(|o_idx| state.upstream_health.is_healthy(*o_idx));
+
+        let upstream_url = crate::proxy::chat_completions_url(upstream);
         let mut upstream_req = state.http_client.post(&upstream_url);
 
         for (name, value) in headers.iter() {
-            if should_forward_header(name) {
+            if crate::proxy::should_forward_header(name) {
                 upstream_req = upstream_req.header(name.as_str(), value.as_bytes());
             }
         }
@@ -197,7 +258,7 @@ async fn send_with_failover(
         match upstream_req.send().await {
             Ok(res) => {
                 let status = res.status();
-                if should_try_next_upstream(status) && has_next_healthy {
+                if crate::proxy::should_try_next_upstream(status) && has_next_healthy {
                     warn!(
                         upstream_id = %upstream.id,
                         provider = %upstream.provider,
@@ -207,7 +268,7 @@ async fn send_with_failover(
                     continue;
                 }
 
-                if index > 0 {
+                if orig_index > 0 {
                     info!(
                         upstream_id = %upstream.id,
                         provider = %upstream.provider,
@@ -243,30 +304,10 @@ async fn send_with_failover(
     ))
 }
 
-fn has_next_healthy_upstream(state: &AppState, current_index: usize) -> bool {
-    state
-        .upstreams
-        .iter()
-        .enumerate()
-        .skip(current_index + 1)
-        .any(|(index, _)| state.upstream_health.is_healthy(index))
-}
-
-fn chat_completions_url(upstream: &ResolvedUpstream) -> String {
-    format!(
-        "{}/v1/chat/completions",
-        upstream.base_url.trim_end_matches('/')
-    )
-}
-
-fn should_forward_header(name: &HeaderName) -> bool {
-    name != axum::http::header::HOST
-        && name != axum::http::header::CONNECTION
-        && name != axum::http::header::TRANSFER_ENCODING
-}
-
-fn should_try_next_upstream(status: reqwest::StatusCode) -> bool {
-    matches!(status.as_u16(), 429 | 502 | 503 | 504)
+fn extract_model_for_routing(body: &[u8]) -> Option<String> {
+    serde_json::from_slice::<ModelRouteView<'_>>(body)
+        .ok()
+        .map(|view| view.model.into_owned())
 }
 
 #[cfg(test)]
@@ -274,7 +315,7 @@ mod tests {
     use std::net::SocketAddr;
     use std::sync::{
         Arc,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicU64, AtomicUsize, Ordering},
     };
 
     use axum::body::{Body, to_bytes};
@@ -318,13 +359,16 @@ mod tests {
                 },
             ],
             upstream_health,
+            total_requests: Arc::new(AtomicU64::new(0)),
         };
 
         let request = Request::builder()
             .method("POST")
             .uri("/v1/chat/completions")
             .header(header::CONTENT_TYPE, "application/json")
-            .body(Body::from(r#"{"stream":true}"#))
+            .body(Body::from(
+                r#"{"model":"gpt-4","messages":[{"role":"user","content":"hello"}],"stream":true}"#,
+            ))
             .expect("request should build");
 
         let response = build_router(state, 10_485_760)
@@ -382,13 +426,16 @@ mod tests {
                 },
             ],
             upstream_health,
+            total_requests: Arc::new(AtomicU64::new(0)),
         };
 
         let request = Request::builder()
             .method("POST")
             .uri("/v1/chat/completions")
             .header(header::CONTENT_TYPE, "application/json")
-            .body(Body::from(r#"{"stream":true}"#))
+            .body(Body::from(
+                r#"{"model":"gpt-4","messages":[{"role":"user","content":"hello"}],"stream":true}"#,
+            ))
             .expect("request should build");
 
         let response = build_router(state, 10_485_760)
@@ -436,13 +483,16 @@ mod tests {
                 },
             ],
             upstream_health,
+            total_requests: Arc::new(AtomicU64::new(0)),
         };
 
         let request = Request::builder()
             .method("POST")
             .uri("/v1/chat/completions")
             .header(header::CONTENT_TYPE, "application/json")
-            .body(Body::from(r#"{"stream":true}"#))
+            .body(Body::from(
+                r#"{"model":"gpt-4","messages":[{"role":"user","content":"hello"}],"stream":true}"#,
+            ))
             .expect("request should build");
 
         let response = build_router(state, 10_485_760)
@@ -468,6 +518,7 @@ mod tests {
             http_client: reqwest::Client::new(),
             upstreams: vec![],
             upstream_health,
+            total_requests: Arc::new(AtomicU64::new(0)),
         };
 
         let request = Request::builder()
@@ -483,6 +534,15 @@ mod tests {
             .expect("gateway response should complete");
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn extract_model_for_routing_reads_only_route_hint() {
+        let model = extract_model_for_routing(
+            br#"{"model":"LLaMA3","messages":[{"role":"user","content":"large prompt"}],"stream":true}"#,
+        );
+
+        assert_eq!(model.as_deref(), Some("LLaMA3"));
     }
 
     async fn spawn_test_upstream(
