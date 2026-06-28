@@ -7,7 +7,6 @@ mod stream;
 mod telemetry;
 
 use std::net::SocketAddr;
-use std::sync::Arc;
 use std::time::SystemTime;
 
 use tracing::info;
@@ -15,7 +14,6 @@ use tracing::info;
 use crate::config::load_config;
 use crate::drain::telemetry_drain_worker;
 use crate::routes::{AppState, build_router};
-use crate::telemetry::TelemetryQueue;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,22 +29,24 @@ async fn main() -> anyhow::Result<()> {
     let addr: SocketAddr = format!("{}:{}", cfg.host, cfg.port).parse()?;
 
     let http_client = reqwest::Client::builder()
-        .pool_max_idle_per_host(100)
+        .pool_max_idle_per_host(1000)
         .build()?;
 
+    let (tx, rx) = telemetry::channel(cfg.telemetry_capacity);
+
     let state = AppState {
-        telemetry: Arc::new(TelemetryQueue::new(cfg.telemetry_capacity)),
+        telemetry: tx.clone(),
         http_client,
         upstream_base_url: cfg.upstream_base_url,
         upstream_provider: cfg.upstream_provider,
     };
 
-    let telemetry_worker = state.telemetry.clone();
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
     let worker_handle = tokio::spawn(async move {
         telemetry_drain_worker(
-            telemetry_worker,
+            rx,
+            tx,
             cfg.telemetry_log_path,
             cfg.telemetry_batch_size,
             cfg.telemetry_flush_interval_ms,
@@ -118,27 +118,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_telemetry_drain_worker_batching_and_shutdown() {
-        let queue = Arc::new(TelemetryQueue::new(100));
+        let (tx, rx) = crate::telemetry::channel(100);
         let log_path = format!("test_telemetry_{}.jsonl", uuid::Uuid::new_v4());
 
         // Push 3 events
-        queue.try_record(TelemetryEvent::request_started("req1".into(), 100));
-        queue.try_record(TelemetryEvent::request_started("req2".into(), 200));
-        queue.try_record(TelemetryEvent::request_started("req3".into(), 300));
+        tx.try_record(TelemetryEvent::request_started("req1".into(), 100));
+        tx.try_record(TelemetryEvent::request_started("req2".into(), 200));
+        tx.try_record(TelemetryEvent::request_started("req3".into(), 300));
 
         let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
-        let queue_clone = queue.clone();
         let log_path_clone = log_path.clone();
 
         let worker_handle = tokio::spawn(async move {
-            telemetry_drain_worker(queue_clone, log_path_clone, 2, 50, shutdown_rx).await;
+            telemetry_drain_worker(rx, tx, log_path_clone, 2, 50, shutdown_rx).await;
         });
 
         // Give it some time to process the first batch (size 2) and flush by time
         tokio::time::sleep(Duration::from_millis(150)).await;
-
-        // Queue should be empty now
-        assert_eq!(queue.len(), 0);
 
         // Send graceful shutdown
         shutdown_tx.send(()).unwrap();

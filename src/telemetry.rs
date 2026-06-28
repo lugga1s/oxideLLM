@@ -5,7 +5,6 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
 };
 
-use crossbeam_queue::ArrayQueue;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -70,50 +69,26 @@ pub struct TelemetryBatch {
     pub events: Vec<TelemetryEvent>,
 }
 
-#[derive(Debug)]
-pub struct TelemetryQueue {
-    queue: Arc<ArrayQueue<TelemetryEvent>>,
-    dropped: AtomicU64,
+#[derive(Debug, Clone)]
+pub struct TelemetrySender {
+    sender: tokio::sync::mpsc::Sender<TelemetryEvent>,
+    dropped: Arc<AtomicU64>,
+    capacity: usize,
 }
 
-impl TelemetryQueue {
-    pub fn new(capacity: usize) -> Self {
-        assert!(capacity > 0, "telemetry capacity must be greater than zero");
-        Self {
-            queue: Arc::new(ArrayQueue::new(capacity)),
-            dropped: AtomicU64::new(0),
-        }
-    }
-
+impl TelemetrySender {
     pub fn try_record(&self, event: TelemetryEvent) -> bool {
-        if self.queue.push(event).is_ok() {
-            true
-        } else {
-            self.dropped.fetch_add(1, Ordering::Relaxed);
-            false
-        }
-    }
-
-    pub fn drain_batch(&self, max: usize) -> Vec<TelemetryEvent> {
-        let mut batch = Vec::with_capacity(max.min(self.queue.len()));
-
-        for _ in 0..max {
-            if let Some(event) = self.queue.pop() {
-                batch.push(event);
-            } else {
-                break;
+        match self.sender.try_send(event) {
+            Ok(_) => true,
+            Err(_) => {
+                self.dropped.fetch_add(1, Ordering::Relaxed);
+                false
             }
         }
-
-        batch
     }
 
     pub fn capacity(&self) -> usize {
-        self.queue.capacity()
-    }
-
-    pub fn len(&self) -> usize {
-        self.queue.len()
+        self.capacity
     }
 
     pub fn dropped(&self) -> u64 {
@@ -121,60 +96,53 @@ impl TelemetryQueue {
     }
 }
 
+pub fn channel(capacity: usize) -> (TelemetrySender, tokio::sync::mpsc::Receiver<TelemetryEvent>) {
+    assert!(capacity > 0, "telemetry capacity must be greater than zero");
+    let (tx, rx) = tokio::sync::mpsc::channel(capacity);
+    let sender = TelemetrySender {
+        sender: tx,
+        dropped: Arc::new(AtomicU64::new(0)),
+        capacity,
+    };
+    (sender, rx)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{TelemetryEvent, TelemetryQueue};
+    use super::{TelemetryEvent, channel};
 
     #[test]
     fn drops_when_queue_is_full() {
-        let queue = TelemetryQueue::new(1);
+        let (sender, mut receiver) = channel(1);
 
-        assert!(queue.try_record(TelemetryEvent::request_started("a".into(), 1)));
-        assert!(!queue.try_record(TelemetryEvent::request_started("b".into(), 2)));
-        assert_eq!(queue.dropped(), 1);
-    }
+        assert!(sender.try_record(TelemetryEvent::request_started("a".into(), 1)));
+        assert!(!sender.try_record(TelemetryEvent::request_started("b".into(), 2)));
+        assert_eq!(sender.dropped(), 1);
 
-    #[test]
-    fn drains_batch() {
-        let queue = TelemetryQueue::new(4);
-
-        assert!(queue.try_record(TelemetryEvent::request_started("a".into(), 1)));
-        assert!(queue.try_record(TelemetryEvent::request_completed(
-            "a".into(),
-            1,
-            5,
-            Some(2),
-            100,
-            200,
-            "ok".to_string(),
-            None
-        )));
-
-        let batch = queue.drain_batch(10);
-
-        assert_eq!(batch.len(), 2);
-        assert_eq!(queue.len(), 0);
+        assert!(receiver.try_recv().is_ok());
+        assert!(receiver.try_recv().is_err());
     }
 
     #[test]
     fn telemetry_queue_overflow() {
         let capacity = 5;
-        let queue = TelemetryQueue::new(capacity);
+        let (sender, mut receiver) = channel(capacity);
 
         for i in 0..capacity {
-            assert!(queue.try_record(TelemetryEvent::request_started(
+            assert!(sender.try_record(TelemetryEvent::request_started(
                 format!("req_{}", i),
                 i as u64
             )));
         }
 
         // Overflows on next
-        assert!(!queue.try_record(TelemetryEvent::request_started("overflow".into(), 100)));
-        assert_eq!(queue.dropped(), 1);
-        assert_eq!(queue.len(), capacity);
+        assert!(!sender.try_record(TelemetryEvent::request_started("overflow".into(), 100)));
+        assert_eq!(sender.dropped(), 1);
 
-        let batch = queue.drain_batch(capacity + 2);
-        assert_eq!(batch.len(), capacity);
-        assert_eq!(queue.len(), 0);
+        let mut count = 0;
+        while receiver.try_recv().is_ok() {
+            count += 1;
+        }
+        assert_eq!(count, capacity);
     }
 }

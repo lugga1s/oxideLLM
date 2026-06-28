@@ -371,7 +371,7 @@ resultado direto e gateway registrados
 
 ---
 
-## TC-014: GitHub PR Draft
+## TC-014: GitHub PR Draft [DONE]
 
 Objetivo:
 
@@ -425,7 +425,7 @@ lista de riscos concretos com arquivo/linha
 
 ---
 
-## TC-016: Docs Consistency Pass
+## TC-016: Docs Consistency Pass [DONE]
 
 Objetivo:
 
@@ -531,7 +531,7 @@ todos os testes passam
 
 ---
 
-## TC-020: Setup WSL2 e Benchmark Limpo
+## TC-020: Setup WSL2 e Benchmark Limpo [DONE]
 
 Objetivo:
 

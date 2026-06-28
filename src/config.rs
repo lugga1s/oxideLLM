@@ -3,7 +3,7 @@
 use clap::Parser;
 use serde::Deserialize;
 
-// ── TOML config structs ──────────────────────────────────────────────
+// -- TOML config structs ----------------------------------------------
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ConfigFile {
@@ -32,7 +32,7 @@ pub struct TelemetryConfig {
     pub flush_interval_ms: Option<u64>,
 }
 
-// ── CLI args ─────────────────────────────────────────────────────────
+// -- CLI args ---------------------------------------------------------
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
@@ -65,7 +65,7 @@ pub struct Args {
     pub telemetry_flush_interval_ms: Option<u64>,
 }
 
-// ── Resolved config ──────────────────────────────────────────────────
+// -- Resolved config --------------------------------------------------
 
 pub struct ResolvedConfig {
     pub host: String,

@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::pin::Pin;
-use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use futures_util::Stream;
-use tracing::warn;
 
-use crate::telemetry::{TelemetryEvent, TelemetryQueue};
+use crate::telemetry::{TelemetryEvent, TelemetrySender};
 use crate::unix_ms;
 
-// ── Guard that fires a completion event on drop ──────────────────────
+// -- Guard that fires a completion event on drop ----------------------
 
 pub(crate) struct TelemetryStreamGuard {
     pub request_id: String,
     pub started_at_ms: u64,
     pub started_at_mono: tokio::time::Instant,
-    pub telemetry: Arc<TelemetryQueue>,
+    pub telemetry: TelemetrySender,
     pub ttft_ms: Option<u64>,
     pub bytes_in: usize,
     pub bytes_out: usize,
@@ -37,14 +35,11 @@ impl Drop for TelemetryStreamGuard {
             self.status.clone(),
             self.error_class.clone(),
         );
-        let accepted = self.telemetry.try_record(completed);
-        if !accepted {
-            warn!("telemetry queue full while recording request completion");
-        }
+        self.telemetry.try_record(completed);
     }
 }
 
-// ── Stream wrapper that tracks TTFT and byte counts ──────────────────
+// -- Stream wrapper that tracks TTFT and byte counts ------------------
 
 pub(crate) struct GuardedStream<S> {
     inner: S,

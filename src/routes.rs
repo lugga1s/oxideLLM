@@ -13,20 +13,20 @@ use serde::Serialize;
 use tracing::warn;
 
 use crate::stream::{GuardedStream, TelemetryStreamGuard};
-use crate::telemetry::{TelemetryEvent, TelemetryQueue};
+use crate::telemetry::{TelemetryEvent, TelemetrySender};
 use crate::unix_ms;
 
-// ── Shared application state ────────────────────────────────────────
+// -- Shared application state ----------------------------------------
 
 #[derive(Clone)]
 pub struct AppState {
-    pub telemetry: Arc<TelemetryQueue>,
+    pub telemetry: TelemetrySender,
     pub http_client: Client,
     pub upstream_base_url: String,
     pub upstream_provider: String,
 }
 
-// ── Response types ───────────────────────────────────────────────────
+// -- Response types ---------------------------------------------------
 
 #[derive(Serialize)]
 struct HealthResponse {
@@ -38,11 +38,10 @@ struct HealthResponse {
 struct ReadyResponse {
     status: &'static str,
     telemetry_capacity: usize,
-    telemetry_len: usize,
     telemetry_drops: u64,
 }
 
-// ── Router construction ──────────────────────────────────────────────
+// -- Router construction ----------------------------------------------
 
 pub fn build_router(state: AppState) -> Router {
     Router::new()
@@ -52,7 +51,7 @@ pub fn build_router(state: AppState) -> Router {
         .with_state(state)
 }
 
-// ── Handlers ─────────────────────────────────────────────────────────
+// -- Handlers ---------------------------------------------------------
 
 async fn healthz() -> impl IntoResponse {
     Json(HealthResponse {
@@ -65,7 +64,6 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     Json(ReadyResponse {
         status: "ready",
         telemetry_capacity: state.telemetry.capacity(),
-        telemetry_len: state.telemetry.len(),
         telemetry_drops: state.telemetry.dropped(),
     })
 }
@@ -79,14 +77,10 @@ async fn chat_completions(
     let started_at_ms = unix_ms();
     let started_at_mono = tokio::time::Instant::now();
 
-    let accepted = state.telemetry.try_record(TelemetryEvent::request_started(
+    state.telemetry.try_record(TelemetryEvent::request_started(
         request_id.clone(),
         started_at_ms,
     ));
-
-    if !accepted {
-        warn!("telemetry queue full while recording request start");
-    }
 
     let mut guard = TelemetryStreamGuard {
         request_id,
