@@ -80,3 +80,22 @@ Next action:
 ## 4. Minimal Rule
 
 If a result affects a public claim or next-stage decision, write it down.
+
+---
+
+## 5. Verification Records
+
+```text
+Run ID: RUN-2026-06-28-STG8-VAL
+Date: 2026-06-28
+Agent: Antigravity (Gemini 3.5 Flash)
+Task card: Stage 8 (TC-022, TC-023, TC-024)
+Commit: 461ebef
+Environment: Local Windows 11
+Tools: rustc 1.80+, cargo, powershell
+Command: cargo test --all; .\scripts\validate_context.ps1
+Result: 14 tests passed, context validation passed. Background health worker successfully detects offline upstreams and logs warning as expected.
+Status: green
+Artifact path: none
+Notes: Validated fallback/failover routing and active background health checks. Banner and sponsors info added to startup.
+```
