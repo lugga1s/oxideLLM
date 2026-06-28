@@ -46,15 +46,12 @@ struct ReadyResponse {
 
 // -- Router construction ----------------------------------------------
 
-/// Maximum request body size accepted by the gateway (10 MiB).
-const MAX_REQUEST_BODY_BYTES: usize = 10 * 1024 * 1024;
-
-pub fn build_router(state: AppState) -> Router {
+pub fn build_router(state: AppState, body_limit_bytes: usize) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
         .route("/v1/chat/completions", post(chat_completions))
-        .layer(RequestBodyLimitLayer::new(MAX_REQUEST_BODY_BYTES))
+        .layer(RequestBodyLimitLayer::new(body_limit_bytes))
         .with_state(state)
 }
 
@@ -330,7 +327,7 @@ mod tests {
             .body(Body::from(r#"{"stream":true}"#))
             .expect("request should build");
 
-        let response = build_router(state)
+        let response = build_router(state, 10_485_760)
             .oneshot(request)
             .await
             .expect("gateway response should complete");
@@ -394,7 +391,7 @@ mod tests {
             .body(Body::from(r#"{"stream":true}"#))
             .expect("request should build");
 
-        let response = build_router(state)
+        let response = build_router(state, 10_485_760)
             .oneshot(request)
             .await
             .expect("gateway response should complete");
@@ -448,7 +445,7 @@ mod tests {
             .body(Body::from(r#"{"stream":true}"#))
             .expect("request should build");
 
-        let response = build_router(state)
+        let response = build_router(state, 10_485_760)
             .oneshot(request)
             .await
             .expect("gateway response should complete");
@@ -460,6 +457,32 @@ mod tests {
 
         primary_handle.abort();
         secondary_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn chat_completions_rejects_oversized_body() {
+        let (telemetry, _rx) = telemetry::channel(64);
+        let upstream_health = UpstreamHealthState::new(0);
+        let state = AppState {
+            telemetry,
+            http_client: reqwest::Client::new(),
+            upstreams: vec![],
+            upstream_health,
+        };
+
+        let request = Request::builder()
+            .method("POST")
+            .uri("/v1/chat/completions")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(vec![0u8; 2000])) // 2KB body
+            .expect("request should build");
+
+        let response = build_router(state, 1000) // 1KB limit
+            .oneshot(request)
+            .await
+            .expect("gateway response should complete");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     async fn spawn_test_upstream(

@@ -19,6 +19,9 @@ pub struct ConfigFile {
 pub struct ServerConfig {
     pub host: Option<String>,
     pub port: Option<u16>,
+    pub request_body_max_bytes: Option<usize>,
+    pub upstream_connect_timeout_ms: Option<u64>,
+    pub upstream_request_timeout_ms: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -64,6 +67,15 @@ pub struct Args {
     #[arg(long, env = "LLMK_UPSTREAM_BASE_URL")]
     pub upstream_base_url: Option<String>,
 
+    #[arg(long, env = "LLMK_REQUEST_BODY_MAX_BYTES")]
+    pub request_body_max_bytes: Option<usize>,
+
+    #[arg(long, env = "LLMK_UPSTREAM_CONNECT_TIMEOUT_MS")]
+    pub upstream_connect_timeout_ms: Option<u64>,
+
+    #[arg(long, env = "LLMK_UPSTREAM_REQUEST_TIMEOUT_MS")]
+    pub upstream_request_timeout_ms: Option<u64>,
+
     #[arg(long, env = "LLMK_UPSTREAM_HEALTH_INTERVAL_MS")]
     pub upstream_health_interval_ms: Option<u64>,
 
@@ -92,6 +104,9 @@ pub struct ResolvedConfig {
     pub upstream_base_url: String,
     #[allow(dead_code)]
     pub upstreams: Vec<ResolvedUpstream>,
+    pub request_body_max_bytes: usize,
+    pub upstream_connect_timeout_ms: u64,
+    pub upstream_request_timeout_ms: u64,
     pub upstream_health_interval_ms: u64,
     pub upstream_health_timeout_ms: u64,
     pub telemetry_capacity: usize,
@@ -146,6 +161,18 @@ pub fn resolve_config_values(args: &Args, config_file: &ConfigFile) -> ResolvedC
         upstream_provider: primary_upstream.provider.clone(),
         upstream_base_url: primary_upstream.base_url.clone(),
         upstreams,
+        request_body_max_bytes: args
+            .request_body_max_bytes
+            .or_else(|| config_file.server.as_ref().and_then(|s| s.request_body_max_bytes))
+            .unwrap_or(10_485_760),
+        upstream_connect_timeout_ms: args
+            .upstream_connect_timeout_ms
+            .or_else(|| config_file.server.as_ref().and_then(|s| s.upstream_connect_timeout_ms))
+            .unwrap_or(5_000),
+        upstream_request_timeout_ms: args
+            .upstream_request_timeout_ms
+            .or_else(|| config_file.server.as_ref().and_then(|s| s.upstream_request_timeout_ms))
+            .unwrap_or(120_000),
         upstream_health_interval_ms: args
             .upstream_health_interval_ms
             .or_else(|| {
@@ -328,6 +355,9 @@ mod tests {
             port: None,
             upstream_provider: None,
             upstream_base_url: None,
+            request_body_max_bytes: None,
+            upstream_connect_timeout_ms: None,
+            upstream_request_timeout_ms: None,
             upstream_health_interval_ms: None,
             upstream_health_timeout_ms: None,
             telemetry_capacity: None,
