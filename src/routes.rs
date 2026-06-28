@@ -10,7 +10,8 @@ use futures_util::StreamExt;
 use http_body_util::BodyExt;
 use reqwest::Client;
 use serde::Serialize;
-use tracing::warn;
+use tower_http::limit::RequestBodyLimitLayer;
+use tracing::{info, warn};
 
 use crate::config::ResolvedUpstream;
 use crate::drain::UpstreamHealthState;
@@ -45,11 +46,12 @@ struct ReadyResponse {
 
 // -- Router construction ----------------------------------------------
 
-pub fn build_router(state: AppState) -> Router {
+pub fn build_router(state: AppState, body_limit_bytes: usize) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
         .route("/v1/chat/completions", post(chat_completions))
+        .layer(RequestBodyLimitLayer::new(body_limit_bytes))
         .with_state(state)
 }
 
@@ -94,6 +96,7 @@ async fn chat_completions(
         bytes_out: 0,
         status: "error".to_string(),
         error_class: None,
+        upstream_id: None,
     };
 
     let body_bytes = match req_body.collect().await {
@@ -106,7 +109,10 @@ async fn chat_completions(
     guard.bytes_in = body_bytes.len();
 
     let upstream_res = match send_with_failover(&state, &headers, body_bytes).await {
-        Ok(res) => res,
+        Ok((res, upstream_id)) => {
+            guard.upstream_id = Some(upstream_id);
+            res
+        }
         Err((status, error_class)) => {
             guard.error_class = Some(error_class);
             return Err(status);
@@ -122,6 +128,10 @@ async fn chat_completions(
     }
 
     let mut response_builder = axum::response::Response::builder().status(status_code);
+
+    if let Some(ref uid) = guard.upstream_id {
+        response_builder = response_builder.header("x-upstream-id", uid);
+    }
 
     for (name, value) in upstream_res.headers().iter() {
         if name != axum::http::header::TRANSFER_ENCODING && name != axum::http::header::CONNECTION {
@@ -145,7 +155,7 @@ async fn send_with_failover(
     state: &AppState,
     headers: &axum::http::HeaderMap,
     body: bytes::Bytes,
-) -> Result<reqwest::Response, (axum::http::StatusCode, String)> {
+) -> Result<(reqwest::Response, String), (axum::http::StatusCode, String)> {
     if state.upstreams.is_empty() {
         warn!("no upstreams configured");
         return Err((
@@ -197,7 +207,15 @@ async fn send_with_failover(
                     continue;
                 }
 
-                return Ok(res);
+                if index > 0 {
+                    info!(
+                        upstream_id = %upstream.id,
+                        provider = %upstream.provider,
+                        "fallback upstream successfully handled the request"
+                    );
+                }
+
+                return Ok((res, upstream.id.clone()));
             }
             Err(e) if has_next_healthy => {
                 warn!(
@@ -248,7 +266,7 @@ fn should_forward_header(name: &HeaderName) -> bool {
 }
 
 fn should_try_next_upstream(status: reqwest::StatusCode) -> bool {
-    status.as_u16() >= 400
+    matches!(status.as_u16(), 429 | 502 | 503 | 504)
 }
 
 #[cfg(test)]
@@ -309,7 +327,7 @@ mod tests {
             .body(Body::from(r#"{"stream":true}"#))
             .expect("request should build");
 
-        let response = build_router(state)
+        let response = build_router(state, 10_485_760)
             .oneshot(request)
             .await
             .expect("gateway response should complete");
@@ -373,7 +391,7 @@ mod tests {
             .body(Body::from(r#"{"stream":true}"#))
             .expect("request should build");
 
-        let response = build_router(state)
+        let response = build_router(state, 10_485_760)
             .oneshot(request)
             .await
             .expect("gateway response should complete");
@@ -384,6 +402,87 @@ mod tests {
 
         primary_handle.abort();
         secondary_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn chat_completions_does_not_failover_on_client_error() {
+        let primary_hits = Arc::new(AtomicUsize::new(0));
+        let secondary_hits = Arc::new(AtomicUsize::new(0));
+
+        let (primary_url, primary_handle) =
+            spawn_test_upstream(StatusCode::BAD_REQUEST, primary_hits.clone()).await;
+        let (secondary_url, secondary_handle) =
+            spawn_test_upstream(StatusCode::OK, secondary_hits.clone()).await;
+
+        let (telemetry, _rx) = telemetry::channel(64);
+        let upstream_health = UpstreamHealthState::new(2);
+        let state = AppState {
+            telemetry,
+            http_client: reqwest::Client::new(),
+            upstreams: vec![
+                ResolvedUpstream {
+                    id: "primary".to_string(),
+                    provider: "mock".to_string(),
+                    base_url: primary_url,
+                    priority: 0,
+                    health_path: "/healthz".to_string(),
+                },
+                ResolvedUpstream {
+                    id: "secondary".to_string(),
+                    provider: "mock".to_string(),
+                    base_url: secondary_url,
+                    priority: 10,
+                    health_path: "/healthz".to_string(),
+                },
+            ],
+            upstream_health,
+        };
+
+        let request = Request::builder()
+            .method("POST")
+            .uri("/v1/chat/completions")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(r#"{"stream":true}"#))
+            .expect("request should build");
+
+        let response = build_router(state, 10_485_760)
+            .oneshot(request)
+            .await
+            .expect("gateway response should complete");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        assert_eq!(primary_hits.load(Ordering::Relaxed), 1);
+        assert_eq!(secondary_hits.load(Ordering::Relaxed), 0);
+
+        primary_handle.abort();
+        secondary_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn chat_completions_rejects_oversized_body() {
+        let (telemetry, _rx) = telemetry::channel(64);
+        let upstream_health = UpstreamHealthState::new(0);
+        let state = AppState {
+            telemetry,
+            http_client: reqwest::Client::new(),
+            upstreams: vec![],
+            upstream_health,
+        };
+
+        let request = Request::builder()
+            .method("POST")
+            .uri("/v1/chat/completions")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(vec![0u8; 2000])) // 2KB body
+            .expect("request should build");
+
+        let response = build_router(state, 1000) // 1KB limit
+            .oneshot(request)
+            .await
+            .expect("gateway response should complete");
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     async fn spawn_test_upstream(

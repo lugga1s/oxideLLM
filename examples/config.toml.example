@@ -1,6 +1,12 @@
 [server]
 host = "127.0.0.1"
 port = 8080
+# Maximum request body size accepted by the gateway.
+# request_body_max_bytes = 10485760
+# Upstream connection timeout in milliseconds.
+# upstream_connect_timeout_ms = 5000
+# Upstream request timeout in milliseconds.
+# upstream_request_timeout_ms = 120000
 
 [[upstreams]]
 id = "mock-primary"

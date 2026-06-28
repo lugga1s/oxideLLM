@@ -20,6 +20,7 @@ pub(crate) struct TelemetryStreamGuard {
     pub bytes_out: usize,
     pub status: String,
     pub error_class: Option<String>,
+    pub upstream_id: Option<String>,
 }
 
 impl Drop for TelemetryStreamGuard {
@@ -34,6 +35,7 @@ impl Drop for TelemetryStreamGuard {
             self.bytes_out,
             self.status.clone(),
             self.error_class.clone(),
+            self.upstream_id.clone(),
         );
         self.telemetry.try_record(completed);
     }

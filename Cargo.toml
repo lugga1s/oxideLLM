@@ -1,12 +1,13 @@
 [package]
 name = "oxidellm"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 description = "High-performance Rust LLM gateway with async telemetry off the critical path."
 repository = "https://github.com/lugga1s/oxideLLM"
 
 [dependencies]
+tower-http = { version = "0.6", features = ["limit"] }
 anyhow = "1"
 axum = "0.8"
 bytes = "1"

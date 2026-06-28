@@ -187,6 +187,9 @@ Usa **AGPL-3.0-or-later**. Consulte [licensing-strategy.md](file:///docs/licensi
 <details>
 <summary><b>Documentacao de Contribuicao (Clique para expandir)</b></summary>
 
+> Os documentos abaixo sao manuais internos de engenharia, mantidos fora do repositorio publico.
+> Contribuidores com acesso ao ambiente de desenvolvimento local encontram esses arquivos na raiz do projeto.
+
 Aqui estao todos os manuais tecnicos que descrevem o funcionamento interno do gateway para desenvolvedores que desejam contribuir:
 
 * `AGENTS.md` - Instrucoes gerais para agentes autonomos de IA.
