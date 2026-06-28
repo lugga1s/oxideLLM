@@ -585,7 +585,7 @@ erros mapeados
 
 ---
 
-## TC-022: Multi-upstream Configuration
+## TC-022: Multi-upstream Configuration [DONE]
 
 Objetivo:
 
@@ -609,7 +609,7 @@ testes unitarios de parse da nova config passam
 
 ---
 
-## TC-023: Gateway Client-side Fallback & Failover
+## TC-023: Gateway Client-side Fallback & Failover [DONE]
 
 Objetivo:
 
@@ -633,7 +633,7 @@ teste unitario cobre o redirecionamento com sucesso
 
 ---
 
-## TC-024: Upstream Health Check Workers
+## TC-024: Upstream Health Check Workers [DONE]
 
 Objetivo:
 
