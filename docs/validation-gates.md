@@ -262,17 +262,9 @@ P99 piora ao ativar persistencia.
 Objetivo: trocar mock por Ollama ou vLLM e validar streaming real. Quando vLLM estiver disponivel, comparar gateway contra vLLM direto e validar a meta de performance flat.
 
 Como fazer:
-
-```bash
-# direto no vLLM
-k6 run -e TARGET_URL=http://localhost:8000/v1/chat/completions k6/proxy-vs-direct.js
-
-# atraves do gateway apontando para vLLM
-k6 run -e TARGET_URL=http://localhost:8080/v1/chat/completions k6/proxy-vs-direct.js
-```
+Para o procedimento detalhado de instalação, configuração e comandos de disparo do benchmark, consulte o [vllm-parity-runbook.md](file:///c:/Users/preto/Documents/Nova%20pasta/benchmarks/vllm-parity-runbook.md).
 
 Gate:
-
 ```text
 SSE real chega ao cliente.
 TTFT e medido no primeiro delta util.
@@ -284,7 +276,6 @@ Overhead de TTFT registrado e explicado.
 ```
 
 Evidencia obrigatoria:
-
 ```text
 resultado direto vLLM
 resultado gateway -> vLLM

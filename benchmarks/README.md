@@ -39,17 +39,12 @@ http_req_failed < 0.1%
 
 ## vLLM Native Parity
 
-Quando vLLM estiver rodando localmente:
+Para detalhes de configuração de ambiente, instalação do vLLM, execução do servidor e disparos de carga comparativos, consulte o guia passo a passo em [vllm-parity-runbook.md](file:///c:/Users/preto/Documents/Nova%20pasta/benchmarks/vllm-parity-runbook.md).
 
-```bash
-k6 run -e TARGET_URL=http://localhost:8000/v1/chat/completions k6/proxy-vs-direct.js
-k6 run -e TARGET_URL=http://localhost:8080/v1/chat/completions k6/proxy-vs-direct.js
-```
+Quando o vLLM estiver rodando localmente, execute os comandos descritos no runbook para coletar os resultados direto vs gateway.
 
-Publicar somente se:
+Publicar resultados somente se:
+- RPS gateway >= 98% do vLLM direto
+- P99 gateway aproximadamente flat
+- TTFT overhead documentado e explicado
 
-```text
-RPS gateway >= 98% do vLLM direto
-P99 gateway aproximadamente flat
-TTFT overhead documentado
-```
