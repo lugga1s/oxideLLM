@@ -163,15 +163,30 @@ pub fn resolve_config_values(args: &Args, config_file: &ConfigFile) -> ResolvedC
         upstreams,
         request_body_max_bytes: args
             .request_body_max_bytes
-            .or_else(|| config_file.server.as_ref().and_then(|s| s.request_body_max_bytes))
+            .or_else(|| {
+                config_file
+                    .server
+                    .as_ref()
+                    .and_then(|s| s.request_body_max_bytes)
+            })
             .unwrap_or(10_485_760),
         upstream_connect_timeout_ms: args
             .upstream_connect_timeout_ms
-            .or_else(|| config_file.server.as_ref().and_then(|s| s.upstream_connect_timeout_ms))
+            .or_else(|| {
+                config_file
+                    .server
+                    .as_ref()
+                    .and_then(|s| s.upstream_connect_timeout_ms)
+            })
             .unwrap_or(5_000),
         upstream_request_timeout_ms: args
             .upstream_request_timeout_ms
-            .or_else(|| config_file.server.as_ref().and_then(|s| s.upstream_request_timeout_ms))
+            .or_else(|| {
+                config_file
+                    .server
+                    .as_ref()
+                    .and_then(|s| s.upstream_request_timeout_ms)
+            })
             .unwrap_or(120_000),
         upstream_health_interval_ms: args
             .upstream_health_interval_ms

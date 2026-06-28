@@ -362,7 +362,8 @@ mod tests {
         let log_path_clone = log_path.clone();
 
         let worker_handle = tokio::spawn(async move {
-            crate::drain::telemetry_drain_worker(rx, tx, log_path_clone, 1000, 50, shutdown_rx).await;
+            crate::drain::telemetry_drain_worker(rx, tx, log_path_clone, 1000, 50, shutdown_rx)
+                .await;
         });
 
         tokio::time::sleep(Duration::from_millis(200)).await;

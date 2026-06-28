@@ -30,8 +30,12 @@ async fn main() -> anyhow::Result<()> {
 
     let http_client = reqwest::Client::builder()
         .pool_max_idle_per_host(1000)
-        .connect_timeout(std::time::Duration::from_millis(cfg.upstream_connect_timeout_ms))
-        .timeout(std::time::Duration::from_millis(cfg.upstream_request_timeout_ms))
+        .connect_timeout(std::time::Duration::from_millis(
+            cfg.upstream_connect_timeout_ms,
+        ))
+        .timeout(std::time::Duration::from_millis(
+            cfg.upstream_request_timeout_ms,
+        ))
         .tcp_nodelay(true)
         .build()?;
 
