@@ -48,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
         upstream_health: upstream_health.clone(),
     };
 
+    let telemetry_log_path = cfg.telemetry_log_path.clone();
     let (telemetry_shutdown_tx, telemetry_shutdown_rx) = tokio::sync::oneshot::channel::<()>();
     let (health_shutdown_tx, health_shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
@@ -76,6 +77,34 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let app = build_router(state.clone());
+
+    println!(
+        r#"
+              _     _      _    _    __  __ 
+  ___| |__ (_)  __| |__| |  |  \/  |
+ / _ \ \'_ \| | / _` / _` |  | |\/| |
+|  __/ |_) | || (_| (_| |  | |  | |
+ \___|_.__/|_| \__,_\__,_|  |_|  |_|
+  High-Performance LLM Gateway
+"#
+    );
+    println!("* Server running on http://{}", addr);
+    println!(
+        "* Primary Upstream: {} ({})",
+        primary_upstream_url, primary_provider
+    );
+    println!(
+        "* Active Upstreams: {} registered with background health checking",
+        upstream_count
+    );
+    println!(
+        "* Telemetry Config: capacity={}, batch_size={}, interval_ms={}ms",
+        cfg.telemetry_capacity, cfg.telemetry_batch_size, cfg.telemetry_flush_interval_ms
+    );
+    println!("* Log Destination: {}", telemetry_log_path);
+    println!("\noxideLLM is free and open-source under AGPL-3.0.");
+    println!("Support voluntary development: https://github.com/sponsors/lugga1s");
+    println!("------------------------------------------------------------\n");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     info!(
