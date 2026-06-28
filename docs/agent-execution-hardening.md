@@ -214,7 +214,7 @@ Nao proponha reescrever a arquitetura inteira.
 
 Antes de editar:
 
-- Confirmou diretório correto?
+- Confirmou diretorio correto?
 - `git status` foi rodado ou bloqueio reportado?
 - Leu `AGENTS.md` e docs obrigatorios?
 - Escolheu exatamente um card?
