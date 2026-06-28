@@ -6,9 +6,9 @@ use std::sync::{
 };
 
 use crossbeam_queue::ArrayQueue;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "event_type", rename_all = "snake_case")]
 pub enum TelemetryEvent {
     RequestStarted {
@@ -59,6 +59,15 @@ impl TelemetryEvent {
             error_class,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TelemetryBatch {
+    pub schema_version: u32,
+    pub batch_id: String,
+    pub created_at_ms: u64,
+    pub event_count: usize,
+    pub events: Vec<TelemetryEvent>,
 }
 
 #[derive(Debug)]

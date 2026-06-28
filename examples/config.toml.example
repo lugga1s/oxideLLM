@@ -1,0 +1,13 @@
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[upstream]
+provider = "mock"
+base_url = "http://127.0.0.1:9000"
+
+[telemetry]
+capacity = 65536
+log_path = "telemetry_events.jsonl"
+batch_size = 1000
+flush_interval_ms = 500

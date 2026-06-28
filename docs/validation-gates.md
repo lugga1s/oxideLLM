@@ -144,13 +144,15 @@ Passa se:
 degradacao_rps_percent < 2
 ```
 
-Observacao: se ambiente local Windows/Docker distorcer resultado, repetir em Linux dedicado antes de publicar claim.
+Observacao: benchmarks de alta concorrencia devem ser executados em Linux (WSL2 ou nativo). Windows tem limites de portas TCP que distorcem resultados acima de ~500 VUs. Ver ADR-0007.
 
 ---
 
 ## 5. Stage 3: Validacao de Contencao Lock-Free
 
 Objetivo: provar que telemetria nao introduz travas ou context switches excessivos.
+
+Nota: Stage 3 e Stage 4 requerem Linux (WSL2 ou nativo). Ferramentas `perf` e `heaptrack` nao estao disponiveis em Windows.
 
 Como fazer em Linux:
 
@@ -193,7 +195,7 @@ Objetivo: validar que pass-through SSE nao aloca por chunk de forma linear.
 Ferramentas:
 
 ```bash
-heaptrack ./target/release/litellm-killer
+heaptrack ./target/release/oxidellm
 cargo install dhat
 ```
 
@@ -310,6 +312,34 @@ Roadmap publico.
 Licenca definida.
 Documentos de arquitetura publicados.
 ```
+
+## 9.1 Requisitos de Ambiente Por Stage
+
+| Stage | Windows | WSL2/Linux | Motivo |
+|---|---|---|---|
+| 0 | sim | sim | compilacao e testes unitarios |
+| 1 | sim (10 VUs) | sim (1000 VUs) | TCP port limits |
+| 2 | sim (10 VUs) | sim (1000 VUs) | TCP port limits |
+| 3 | nao | obrigatorio | perf stat, flamegraph |
+| 4 | nao | obrigatorio | heaptrack, DHAT |
+| 5 | sim | sim | funcional apenas |
+| 6 | sim (Ollama) | sim (vLLM) | vLLM requer Linux |
+| 7 | sim | sim | CI e docs |
+
+---
+
+## 9.1 Requisitos de Ambiente Por Stage
+
+| Stage | Windows | WSL2/Linux | Motivo |
+|---|---|---|---|
+| 0 | sim | sim | compilacao e testes unitarios |
+| 1 | sim (10 VUs) | sim (1000 VUs) | TCP port limits |
+| 2 | sim (10 VUs) | sim (1000 VUs) | TCP port limits |
+| 3 | nao | obrigatorio | perf stat, flamegraph |
+| 4 | nao | obrigatorio | heaptrack, DHAT |
+| 5 | sim | sim | funcional apenas |
+| 6 | sim (Ollama) | sim (vLLM) | vLLM requer Linux |
+| 7 | sim | sim | CI e docs |
 
 ---
 

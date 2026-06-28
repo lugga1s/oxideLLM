@@ -60,6 +60,36 @@ POST /v1/chat/completions
 
 O endpoint de chat inicial retorna um stream SSE mockado. Ele existe para validar o caminho HTTP/SSE/telemetria antes de conectar provedores reais.
 
+## Configuração
+
+O gateway resolve as configurações na seguinte ordem de precedência:
+1. Argumentos de linha de comando (`--host`, `--upstream-base-url`, etc.)
+2. Variáveis de ambiente (`LLMK_HOST`, `LLMK_UPSTREAM_BASE_URL`, etc.)
+3. Arquivo de configuração TOML (`--config <caminho>` ou arquivo `config.toml` na raiz)
+4. Valores padrão em código
+
+### Exemplo de `config.toml`
+
+Crie um arquivo `config.toml` (veja `examples/config.toml.example` para referência):
+
+```toml
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[upstream]
+provider = "mock"
+base_url = "http://127.0.0.1:9000"
+
+[telemetry]
+capacity = 65536
+log_path = "telemetry_events.jsonl"
+batch_size = 1000
+flush_interval_ms = 500
+```
+
+Se nenhum arquivo TOML ou argumento for fornecido, o gateway inicializa com os padrões seguros (127.0.0.1:8080 local e upstream para 127.0.0.1:9000 mock).
+
 ## Benchmark Inicial
 
 O projeto usa k6 para comparar:

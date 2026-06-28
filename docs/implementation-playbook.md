@@ -122,6 +122,8 @@ Importante:
 
 ```text
 este resultado nao prova performance do gateway; ele so cria baseline.
+se usar mock Python, benchmark com 1000 VUs pode saturar o mock.
+usar mock Rust (mock/src/main.rs) para resultados confiaveis.
 ```
 
 ---
@@ -184,6 +186,13 @@ Objetivo:
 
 ```text
 medir overhead real do proxy base
+```
+
+Ambiente obrigatorio:
+
+```text
+WSL2 ou Linux nativo para testes com 100+ VUs (ver ADR-0007)
+Windows aceitavel apenas para validacao funcional com 10 VUs
 ```
 
 Comandos:
@@ -364,11 +373,18 @@ Objetivo:
 achar gargalos reais antes de otimizar
 ```
 
+Ambiente obrigatorio:
+
+```text
+WSL2 ou Linux nativo (ver ADR-0007)
+perf e heaptrack nao estao disponiveis em Windows
+```
+
 Comandos Linux:
 
 ```bash
 perf stat -p <PID>
-heaptrack ./target/release/litellm-killer
+heaptrack ./target/release/oxidellm
 ```
 
 Sucesso:

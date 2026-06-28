@@ -1,0 +1,18 @@
+[package]
+name = "oxidellm-mock"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+description = "High-performance SSE mock server for oxideLLM benchmarks"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive", "env"] }
+tokio-stream = "0.1"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = "symbols"
