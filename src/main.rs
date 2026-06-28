@@ -12,7 +12,7 @@ use std::time::SystemTime;
 use tracing::info;
 
 use crate::config::load_config;
-use crate::drain::telemetry_drain_worker;
+use crate::drain::{UpstreamHealthState, telemetry_drain_worker, upstream_health_worker};
 use crate::routes::{AppState, build_router};
 
 #[tokio::main]
@@ -33,15 +33,23 @@ async fn main() -> anyhow::Result<()> {
         .build()?;
 
     let (tx, rx) = telemetry::channel(cfg.telemetry_capacity);
+    let primary_upstream_url = cfg.upstream_base_url.clone();
+    let primary_provider = cfg.upstream_provider.clone();
+    let upstream_health_interval_ms = cfg.upstream_health_interval_ms;
+    let upstream_health_timeout_ms = cfg.upstream_health_timeout_ms;
+    let upstream_count = cfg.upstreams.len();
+    let upstreams = cfg.upstreams;
+    let upstream_health = UpstreamHealthState::new(upstream_count);
 
     let state = AppState {
         telemetry: tx.clone(),
-        http_client,
-        upstream_base_url: cfg.upstream_base_url,
-        upstream_provider: cfg.upstream_provider,
+        http_client: http_client.clone(),
+        upstreams: upstreams.clone(),
+        upstream_health: upstream_health.clone(),
     };
 
-    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    let (telemetry_shutdown_tx, telemetry_shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    let (health_shutdown_tx, health_shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
     let worker_handle = tokio::spawn(async move {
         telemetry_drain_worker(
@@ -50,7 +58,19 @@ async fn main() -> anyhow::Result<()> {
             cfg.telemetry_log_path,
             cfg.telemetry_batch_size,
             cfg.telemetry_flush_interval_ms,
-            shutdown_rx,
+            telemetry_shutdown_rx,
+        )
+        .await;
+    });
+
+    let health_worker_handle = tokio::spawn(async move {
+        upstream_health_worker(
+            http_client,
+            upstreams,
+            upstream_health,
+            upstream_health_interval_ms,
+            upstream_health_timeout_ms,
+            health_shutdown_rx,
         )
         .await;
     });
@@ -60,8 +80,11 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     info!(
         %addr,
-        upstream_url = %state.upstream_base_url,
-        provider = %state.upstream_provider,
+        upstream_count,
+        %primary_upstream_url,
+        %primary_provider,
+        upstream_health_interval_ms,
+        upstream_health_timeout_ms,
         "gateway listening"
     );
 
@@ -70,7 +93,9 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     info!("gateway shutting down, draining remaining telemetry events");
-    let _ = shutdown_tx.send(());
+    let _ = health_shutdown_tx.send(());
+    let _ = telemetry_shutdown_tx.send(());
+    let _ = health_worker_handle.await;
     let _ = worker_handle.await;
     info!("telemetry flush complete");
 

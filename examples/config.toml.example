@@ -2,17 +2,33 @@
 host = "127.0.0.1"
 port = 8080
 
-[upstream]
-# Choose the upstream provider: "mock" (default) or "ollama" (local OpenAI-compatible)
+[[upstreams]]
+id = "mock-primary"
+# Choose the upstream provider: "mock" (default) or "ollama" (local OpenAI-compatible).
 provider = "mock"
 # Default for mock: http://127.0.0.1:9000
 # Default for ollama: http://127.0.0.1:11434
 base_url = "http://127.0.0.1:9000"
+priority = 10
+# Default for mock upstreams: /healthz
+health_path = "/healthz"
 
-# Example configuration for Ollama:
-# [upstream]
-# provider = "ollama"
-# base_url = "http://127.0.0.1:11434"
+[[upstreams]]
+id = "ollama-local"
+provider = "ollama"
+base_url = "http://127.0.0.1:11434"
+priority = 20
+# Default for ollama upstreams: /api/tags
+health_path = "/api/tags"
+
+# Lower priority numbers are tried first by failover logic.
+# The legacy [upstream] table is still accepted for single-upstream configs.
+
+[upstream_health]
+# Background worker interval for checking configured upstreams.
+interval_ms = 5000
+# Per-upstream request timeout for the health check.
+timeout_ms = 1000
 
 [telemetry]
 capacity = 65536
