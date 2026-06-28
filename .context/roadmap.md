@@ -55,7 +55,7 @@ Saida:
 
 Concluido: TC-005, TC-006, TC-007, TC-008, TC-019, TC-020
 
-Nota: Resultados de benchmarks locais no WSL2 validados sob concorrencia extrema com overhead real de apenas 1.01%.
+Nota: Resultados locais reconciliados em `benchmarks/alpha-v1-benchmark-summary.md`. Os artefatos visiveis sustentam 12,08% de degradacao com telemetria ativa e 11,18% com logs em `/dev/null` contra o direto, dentro do gate local de WSL2/localhost. O numero de 1,01% mede apenas a diferenca entre modos do gateway e nao deve ser usado como overhead contra o direto.
 
 ## Stage 3: Telemetria em Memoria [VERDE]
 
@@ -133,7 +133,8 @@ Objetivo:
 
 Saida:
 
-- projeto pronto para estrelas, issues e contribuicoes.
+- projeto pronto para estrelas, issues e contribuicoes;
+- claims de benchmark reconciliados com artefatos versionaveis.
 
 Concluido: CI, licenca, templates, CONTRIBUTING, SECURITY, README com benchmark, preparacao de PR.
 

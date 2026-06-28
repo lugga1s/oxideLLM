@@ -29,15 +29,14 @@ Cliente -> Gateway Rust -> Mock/vLLM/Ollama
 
 ## Estado Atual
 
-Este repo ainda esta na fundacao:
+Este repo esta em preparacao para alpha v1 funcional:
 
-- contexto estrategico em `.context/project-manifest.md`;
-- especificacao de gargalos em `.context/bottlenecks.md`;
-- blueprint Rust em `docs/architecture.md`;
-- rito de producao em `docs/production-ritual.md`;
-- gates de validacao em `docs/validation-gates.md`;
-- base consultavel para agentes em `.context/agent-db/`;
-- scaffold Rust inicial em `src/`.
+- gateway Rust com endpoints `/healthz`, `/readyz` e `/v1/chat/completions`;
+- configuracao por CLI, variaveis de ambiente e TOML;
+- proxy para upstream OpenAI-compatible/Ollama/Groq em fluxo SSE;
+- mock SSE em Rust para benchmark local;
+- telemetria final em fila bounded e worker de micro-batching JSONL;
+- benchmarks locais existentes reconciliados em `benchmarks/alpha-v1-benchmark-summary.md`.
 
 ## Como Rodar Depois de Instalar Rust
 
@@ -58,7 +57,7 @@ GET  /readyz
 POST /v1/chat/completions
 ```
 
-O endpoint de chat inicial retorna um stream SSE mockado. Ele existe para validar o caminho HTTP/SSE/telemetria antes de conectar provedores reais.
+O endpoint de chat encaminha o corpo da requisicao para o upstream configurado e retransmite a resposta SSE. Para validacao local sem provedor real, suba o mock Rust em `mock/` na porta `9000`.
 
 ## Configuracao
 
@@ -92,17 +91,23 @@ Se nenhum arquivo TOML ou argumento for fornecido, o gateway inicializa com os p
 
 ## Benchmark Inicial (WSL2 / Localhost)
 
-O projeto usa k6 para comparar a eficiencia do gateway frente a conexao direta com o motor de inferencia (ou mock equivalente), simulando carga sob concorrencia extrema de **1000 Virtual Users (VUs)** durante **30 segundos**:
+O projeto usa k6 para comparar a eficiencia do gateway frente a conexao direta com o upstream ou mock equivalente.
 
-### Resultados do Stage 2 (WSL2 Loopback Loop):
+O resumo oficial dos artefatos existentes esta em `benchmarks/alpha-v1-benchmark-summary.md`. A leitura correta hoje e conservadora: os artefatos brutos antigos registram RPS, P95 e taxa de erro, mas nao registram P99. Por isso, estes numeros servem para reconciliar o estado do alpha; um claim publico completo de P99 exige uma nova execucao com o `handleSummary()` atual.
 
-| Caminho de Execucao | RPS Medio | Latencia P99 | HTTP Erros | Status |
-|---|---|---|---|---|
-| **Conexao Direta (Baseline)** | 20.282,05 req/s | 76,05ms | 0,00% | - |
-| **Gateway oxideLLM (Telemetria Ativa)** | 17.831,39 req/s | 93,64ms | 0,00% | **Verde** (12,08% de degradacao)* |
-| **Gateway oxideLLM (Telemetria p/ `/dev/null`)** | 18.014,34 req/s | 90,63ms | 0,00% | **Verde** (1,01% overhead real) |
+Depois do ajuste do script k6, tambem existe um smoke WSL2 curto com P95/P99 no resumo oficial. Ele valida a geracao do artefato JSON, mas nao substitui o gate de alta concorrencia.
 
-> \* *Nota: Sob concorrencia extrema, a bridge de rede virtualizada do WSL2 no Windows adiciona overhead na CPU por duplicar o fluxo de rede de loopback. O overhead real intrinseco do proxy de dados (plano de dados) e de apenas **1,01%**, demonstrando excelente eficiencia.*
+### Resultados Reconciliados do Stage 2
+
+Fonte: artefatos locais em `benchmarks/results/` gerados antes desta passada. Esse diretorio e ignorado por Git; o resumo versionavel fica em `benchmarks/alpha-v1-benchmark-summary.md`.
+
+| Caminho de execucao | RPS medio | Latencia P95 | P99 no JSON | HTTP erros | Leitura |
+|---|---:|---:|---|---:|---|
+| Conexao direta ao mock Rust | 20.282,05 req/s | 59,64 ms | nao registrado | 0,00% | baseline |
+| Gateway com telemetria ativa | 17.831,39 req/s | 74,40 ms | nao registrado | 0,00% | 12,08% de degradacao vs direto |
+| Gateway com logs em `/dev/null` | 18.014,34 req/s | 73,68 ms | nao registrado | 0,00% | 11,18% de degradacao vs direto |
+
+O numero de 1,01% nao deve ser lido como overhead do gateway contra o direto. Pelos artefatos visiveis, ele representa apenas a diferenca de RPS entre o gateway com telemetria ativa e o gateway com logs em `/dev/null`.
 
 Comandos para executar os testes locais:
 
@@ -113,9 +118,16 @@ cd mock && cargo run --release
 # 2. Subir gateway
 cargo run --release
 
-# 3. Rodar k6 direto vs gateway
-k6 run -e TARGET_URL=http://localhost:9000/v1/chat/completions k6/proxy-vs-direct.js
-k6 run -e TARGET_URL=http://localhost:8080/v1/chat/completions k6/proxy-vs-direct.js
+# 3. Rodar k6 direto vs gateway com resumo JSON
+k6 run -e RUN_LABEL=stage-02-direct \
+  -e TARGET_URL=http://localhost:9000/v1/chat/completions \
+  -e SUMMARY_PATH=benchmarks/results/stage-02-direct-summary.json \
+  k6/proxy-vs-direct.js
+
+k6 run -e RUN_LABEL=stage-02-gateway \
+  -e TARGET_URL=http://localhost:8080/v1/chat/completions \
+  -e SUMMARY_PATH=benchmarks/results/stage-02-gateway-summary.json \
+  k6/proxy-vs-direct.js
 ```
 
 ### Validacao com Provedor Real (Groq - Custo Zero)

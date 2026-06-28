@@ -112,18 +112,20 @@ O script `k6/proxy-vs-direct.js` deve ser executado no mesmo ambiente de rede (l
 ### Passo 1: Executar Carga Direta contra o vLLM (Baseline)
 ```bash
 k6 run \
+  -e RUN_LABEL=vllm-direct \
   -e TARGET_URL=http://localhost:8000/v1/chat/completions \
   -e MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct \
-  --summary-export=benchmarks/results/vllm-direct-raw.json \
+  -e SUMMARY_PATH=benchmarks/results/vllm-direct-summary.json \
   k6/proxy-vs-direct.js
 ```
 
 ### Passo 2: Executar Carga contra o Gateway oxideLLM
 ```bash
 k6 run \
+  -e RUN_LABEL=vllm-gateway \
   -e TARGET_URL=http://localhost:8080/v1/chat/completions \
   -e MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct \
-  --summary-export=benchmarks/results/vllm-gateway-raw.json \
+  -e SUMMARY_PATH=benchmarks/results/vllm-gateway-summary.json \
   k6/proxy-vs-direct.js
 ```
 
