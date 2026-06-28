@@ -10,3 +10,19 @@
 *.heaptrack
 /telemetry_events.jsonl
 
+# Agent specific files
+AGENTS.md
+GEMINI.md
+DEEPSEEK.md
+CLAUDE.md
+.context/
+docs/agent-*
+docs/context-packets.md
+docs/multi-agent-handoff.md
+docs/review-gates.md
+docs/second-pass-2026.md
+docs/production-ritual.md
+docs/github-workflow.md
+docs/verification-ledger.md
+
+
