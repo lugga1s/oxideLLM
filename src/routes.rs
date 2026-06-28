@@ -99,6 +99,7 @@ async fn chat_completions(
         bytes_out: 0,
         status: "error".to_string(),
         error_class: None,
+        upstream_id: None,
     };
 
     let body_bytes = match req_body.collect().await {
@@ -111,7 +112,10 @@ async fn chat_completions(
     guard.bytes_in = body_bytes.len();
 
     let upstream_res = match send_with_failover(&state, &headers, body_bytes).await {
-        Ok(res) => res,
+        Ok((res, upstream_id)) => {
+            guard.upstream_id = Some(upstream_id);
+            res
+        }
         Err((status, error_class)) => {
             guard.error_class = Some(error_class);
             return Err(status);
@@ -150,7 +154,7 @@ async fn send_with_failover(
     state: &AppState,
     headers: &axum::http::HeaderMap,
     body: bytes::Bytes,
-) -> Result<reqwest::Response, (axum::http::StatusCode, String)> {
+) -> Result<(reqwest::Response, String), (axum::http::StatusCode, String)> {
     if state.upstreams.is_empty() {
         warn!("no upstreams configured");
         return Err((
@@ -202,7 +206,7 @@ async fn send_with_failover(
                     continue;
                 }
 
-                return Ok(res);
+                return Ok((res, upstream.id.clone()));
             }
             Err(e) if has_next_healthy => {
                 warn!(

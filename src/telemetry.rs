@@ -24,6 +24,7 @@ pub enum TelemetryEvent {
         bytes_out: usize,
         status: String,
         error_class: Option<String>,
+        upstream_id: Option<String>,
     },
 }
 
@@ -45,6 +46,7 @@ impl TelemetryEvent {
         bytes_out: usize,
         status: String,
         error_class: Option<String>,
+        upstream_id: Option<String>,
     ) -> Self {
         Self::RequestCompleted {
             request_id,
@@ -56,6 +58,7 @@ impl TelemetryEvent {
             bytes_out,
             status,
             error_class,
+            upstream_id,
         }
     }
 }

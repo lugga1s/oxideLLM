@@ -173,6 +173,10 @@ pub async fn telemetry_drain_worker(
 
     let mut buffer = Vec::with_capacity(batch_size);
 
+    let flush_duration = std::time::Duration::from_millis(flush_interval_ms);
+    let flush_sleep = tokio::time::sleep(flush_duration);
+    tokio::pin!(flush_sleep);
+
     loop {
         tokio::select! {
             event_opt = receiver.recv() => {
@@ -181,6 +185,7 @@ pub async fn telemetry_drain_worker(
                         buffer.push(event);
                         if buffer.len() >= batch_size {
                             flush_buffer(&mut buffer, &mut file, sender.dropped()).await;
+                            flush_sleep.as_mut().reset(tokio::time::Instant::now() + flush_duration);
                         }
                     }
                     None => {
@@ -188,10 +193,11 @@ pub async fn telemetry_drain_worker(
                     }
                 }
             }
-            _ = tokio::time::sleep(std::time::Duration::from_millis(flush_interval_ms)) => {
+            _ = &mut flush_sleep => {
                 if !buffer.is_empty() {
                     flush_buffer(&mut buffer, &mut file, sender.dropped()).await;
                 }
+                flush_sleep.as_mut().reset(tokio::time::Instant::now() + flush_duration);
             }
             _ = &mut shutdown_rx => {
                 break;
@@ -214,7 +220,7 @@ pub async fn telemetry_drain_worker(
 async fn flush_buffer(buffer: &mut Vec<TelemetryEvent>, file: &mut tokio::fs::File, dropped: u64) {
     let count = buffer.len();
     let batch = TelemetryBatch {
-        schema_version: 1,
+        schema_version: 2,
         batch_id: uuid::Uuid::new_v4().to_string(),
         created_at_ms: unix_ms(),
         event_count: count,
@@ -337,5 +343,35 @@ mod tests {
 
     async fn health_handler(State(status): State<StatusCode>) -> impl IntoResponse {
         status
+    }
+
+    #[tokio::test]
+    async fn telemetry_drain_flushes_partial_buffer_by_time() {
+        let (tx, rx) = crate::telemetry::channel(100);
+        let log_path = format!("test_telemetry_{}.jsonl", uuid::Uuid::new_v4());
+
+        tx.try_record(TelemetryEvent::request_started("req_timeout".into(), 100));
+
+        let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
+        let log_path_clone = log_path.clone();
+
+        let worker_handle = tokio::spawn(async move {
+            crate::drain::telemetry_drain_worker(rx, tx, log_path_clone, 1000, 50, shutdown_rx).await;
+        });
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        shutdown_tx.send(()).unwrap();
+        worker_handle.await.unwrap();
+
+        let contents = std::fs::read_to_string(&log_path).expect("Failed to read test log file");
+        let _ = std::fs::remove_file(&log_path);
+
+        let lines: Vec<&str> = contents.trim().split('\n').collect();
+        assert_eq!(lines.len(), 1);
+
+        let batch: TelemetryBatch = serde_json::from_str(lines[0]).unwrap();
+        assert_eq!(batch.event_count, 1);
+        assert_eq!(batch.events.len(), 1);
     }
 }
