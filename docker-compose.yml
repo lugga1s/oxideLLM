@@ -1,0 +1,7 @@
+services:
+  mock:
+    build:
+      context: ./mock
+    ports:
+      - "9000:9000"
+

@@ -1,0 +1,54 @@
+{
+  "prompts": [
+    {
+      "id": "universal_boot",
+      "file": "docs/agent-prompts.md",
+      "section": "Prompt Universal de Boot"
+    },
+    {
+      "id": "rust_implementer",
+      "file": "docs/agent-prompts.md",
+      "section": "Prompt Para Implementador Rust"
+    },
+    {
+      "id": "performance_reviewer",
+      "file": "docs/agent-prompts.md",
+      "section": "Prompt Para Revisor de Performance"
+    },
+    {
+      "id": "benchmark_agent",
+      "file": "docs/agent-prompts.md",
+      "section": "Prompt Para Benchmark Agent"
+    },
+    {
+      "id": "gemini_context_review",
+      "file": "docs/agent-prompts.md",
+      "section": "Prompt Para Gemini: Revisao de Contexto"
+    },
+    {
+      "id": "deepseek_rust_review",
+      "file": "docs/agent-prompts.md",
+      "section": "Prompt Para DeepSeek: Revisao Rust/Algoritmica"
+    },
+    {
+      "id": "github_agent",
+      "file": "docs/agent-prompts.md",
+      "section": "Prompt Para GitHub Agent"
+    },
+    {
+      "id": "minimal_implementation_packet",
+      "file": "docs/context-packets.md",
+      "section": "Minimal Implementation Packet"
+    },
+    {
+      "id": "performance_review_packet",
+      "file": "docs/context-packets.md",
+      "section": "Performance Review Packet"
+    },
+    {
+      "id": "benchmark_packet",
+      "file": "docs/context-packets.md",
+      "section": "Benchmark Packet"
+    }
+  ]
+}

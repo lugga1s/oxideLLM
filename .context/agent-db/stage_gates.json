@@ -1,0 +1,86 @@
+{
+  "stages": [
+    {
+      "id": "stage-00-foundation",
+      "name": "Foundation",
+      "goal": "Repository docs, Rust scaffold, CI, agent rules.",
+      "required_commands": [
+        "cargo fmt --check",
+        "cargo check --all-targets",
+        "cargo test --all",
+        "cargo clippy --all-targets -- -D warnings"
+      ],
+      "success": [
+        "All commands pass when Rust toolchain is available.",
+        "README.md exists.",
+        "AGENTS.md exists.",
+        "docs/validation-gates.md exists.",
+        ".github/workflows/ci.yml exists."
+      ]
+    },
+    {
+      "id": "stage-01-direct-baseline",
+      "name": "Direct Mock Baseline",
+      "goal": "Measure direct mock/upstream performance without gateway.",
+      "success": [
+        "1000 VUs run with less than 0.1% HTTP errors.",
+        "RPS and P99 are saved.",
+        "Result artifact exists."
+      ]
+    },
+    {
+      "id": "stage-02-proxy-base",
+      "name": "Rust Proxy Base",
+      "goal": "Compare gateway against direct baseline.",
+      "success": [
+        "Gateway RPS >= 98% of direct RPS.",
+        "P99 is approximately flat.",
+        "HTTP error rate < 0.1%."
+      ]
+    },
+    {
+      "id": "stage-03-telemetry-ring",
+      "name": "Telemetry Ring Buffer",
+      "goal": "Add bounded in-memory telemetry without blocking response.",
+      "success": [
+        "RPS with telemetry >= 98% of proxy without telemetry.",
+        "No abnormal context-switch spike.",
+        "Queue overflow is observable."
+      ]
+    },
+    {
+      "id": "stage-04-memory-profile",
+      "name": "Zero-Copy Memory Validation",
+      "goal": "Validate low allocation pass-through.",
+      "success": [
+        "No linear memory growth.",
+        "No per-chunk JSON object allocation in pass-through.",
+        "Allocation report saved."
+      ]
+    },
+    {
+      "id": "stage-05-microbatch",
+      "name": "Async Micro-batching",
+      "goal": "Persist telemetry by time/size batches.",
+      "success": [
+        "Flush by 500ms or 1000 events.",
+        "Logs appear in batches.",
+        "Client latency does not wait for disk."
+      ]
+    },
+    {
+      "id": "stage-06-upstream-real-vllm-parity",
+      "name": "Upstream Real / vLLM Native Parity",
+      "goal": "Swap mock for Ollama or vLLM and validate real streaming plus direct vLLM parity when available.",
+      "success": [
+        "Real SSE reaches the client.",
+        "TTFT is measured on first useful delta.",
+        "Client disconnect cancels upstream.",
+        "CPU and memory remain stable.",
+        "Gateway RPS >= 98% of direct vLLM in the same environment.",
+        "Gateway P99 is approximately flat against direct vLLM.",
+        "TTFT overhead is documented."
+      ]
+    }
+  ]
+}

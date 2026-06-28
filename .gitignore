@@ -1,0 +1,11 @@
+/target/
+/.env
+/.env.*
+!/examples/.env.example
+/benchmarks/results/
+/.research/
+*.log
+*.tmp
+*.prof
+*.heaptrack
+

@@ -1,0 +1,52 @@
+{
+  "project": {
+    "codename": "OxideLLM",
+    "type": "Rust LLM gateway / reverse proxy",
+    "primary_language": "Rust",
+    "license": "AGPL-3.0-or-later",
+    "runtime": "Tokio",
+    "http_stack_mvp": "Axum over Hyper",
+    "mission": "Preserve upstream LLM throughput while decoupling telemetry and persistence from the critical request path."
+  },
+  "performance_thesis": {
+    "baseline_problem": "Traditional gateways can degrade under high concurrency when telemetry and relational writes are coupled to the request path.",
+    "internal_benchmark_claim": {
+      "direct_vllm_rps": 16.0,
+      "traditional_gateway_4_workers_rps": 8.8,
+      "traditional_gateway_1_worker_rps": 3.9,
+      "critical_degradation_percent": 75.6
+    },
+    "public_claim_policy": "Do not publish performance claims without reproducible benchmark artifacts.",
+    "flat_vllm_definition": "Gateway RPS >= 98% of direct vLLM in the same environment, P99 approximately flat, TTFT overhead documented."
+  },
+  "invariants": [
+    "No synchronous database write in the client response path.",
+    "SSE is processed incrementally.",
+    "Telemetry queue is bounded.",
+    "Client disconnect cancels upstream.",
+    "Benchmarks compare direct upstream versus gateway.",
+    "Large payloads are not converted to strings unless required."
+  ],
+  "current_stage": "Stage 0 - foundation",
+  "docs": {
+    "manifest": ".context/project-manifest.md",
+    "bottlenecks": ".context/bottlenecks.md",
+    "architecture": "docs/architecture.md",
+    "validation_gates": "docs/validation-gates.md",
+    "production_ritual": "docs/production-ritual.md",
+    "github_workflow": "docs/github-workflow.md",
+    "tooling_setup": "docs/tooling-setup.md",
+    "licensing_strategy": "docs/licensing-strategy.md",
+    "implementation_playbook": "docs/implementation-playbook.md",
+    "agent_task_cards": "docs/agent-task-cards.md",
+    "agent_execution_system": "docs/agent-execution-system.md",
+    "multi_agent_handoff": "docs/multi-agent-handoff.md",
+    "agent_quality_scorecard": "docs/agent-quality-scorecard.md",
+    "agent_readiness_matrix": "docs/agent-readiness-matrix.md",
+    "review_gates": "docs/review-gates.md",
+    "context_packets": "docs/context-packets.md",
+    "verification_ledger": "docs/verification-ledger.md",
+    "agent_prompts": "docs/agent-prompts.md",
+    "operational_priorities": "docs/operational-priorities.md"
+  }
+}

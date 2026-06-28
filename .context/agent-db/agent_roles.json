@@ -1,0 +1,49 @@
+{
+  "roles": {
+    "codex": {
+      "best_for": [
+        "local repository edits",
+        "running commands",
+        "CI and file changes",
+        "coordinating task cards"
+      ],
+      "must_read": ["AGENTS.md", "docs/implementation-playbook.md", "docs/agent-task-cards.md"]
+    },
+    "gemini": {
+      "best_for": [
+        "architecture review",
+        "documentation consistency",
+        "README and DX critique",
+        "strategy simplification"
+      ],
+      "must_read": ["GEMINI.md", "AGENTS.md", "docs/multi-agent-handoff.md"]
+    },
+    "deepseek": {
+      "best_for": [
+        "Rust implementation review",
+        "async and concurrency analysis",
+        "performance hotspot review",
+        "small patch suggestions"
+      ],
+      "must_read": ["DEEPSEEK.md", "AGENTS.md", "docs/architecture.md"]
+    },
+    "claude": {
+      "best_for": [
+        "implementation planning",
+        "code review",
+        "test review",
+        "documentation simplification",
+        "handoff synthesis"
+      ],
+      "must_read": ["CLAUDE.md", "AGENTS.md", "docs/agent-quality-scorecard.md"]
+    },
+    "github_copilot": {
+      "best_for": [
+        "inline code assistance",
+        "small implementation suggestions",
+        "test scaffolding"
+      ],
+      "must_read": [".github/copilot-instructions.md", "AGENTS.md"]
+    }
+  }
+}
