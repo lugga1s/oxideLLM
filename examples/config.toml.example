@@ -1,0 +1,21 @@
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[upstream]
+# Choose the upstream provider: "mock" (default) or "ollama" (local OpenAI-compatible)
+provider = "mock"
+# Default for mock: http://127.0.0.1:9000
+# Default for ollama: http://127.0.0.1:11434
+base_url = "http://127.0.0.1:9000"
+
+# Example configuration for Ollama:
+# [upstream]
+# provider = "ollama"
+# base_url = "http://127.0.0.1:11434"
+
+[telemetry]
+capacity = 65536
+log_path = "telemetry_events.jsonl"
+batch_size = 1000
+flush_interval_ms = 500

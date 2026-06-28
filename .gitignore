@@ -1,4 +1,4 @@
-/target/
+**/target/
 /.env
 /.env.*
 !/examples/.env.example
@@ -8,4 +8,5 @@
 *.tmp
 *.prof
 *.heaptrack
+/telemetry_events.jsonl
 

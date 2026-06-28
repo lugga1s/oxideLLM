@@ -1,8 +1,16 @@
-FROM python:3.12-alpine
+FROM rust:1.87-alpine AS builder
+
+RUN apk add --no-cache musl-dev
 
 WORKDIR /app
-COPY mock_server.py /app/mock_server.py
+COPY Cargo.toml Cargo.toml
+COPY src/ src/
+
+RUN cargo build --release
+
+FROM alpine:3.21
+
+COPY --from=builder /app/target/release/oxidellm-mock /usr/local/bin/oxidellm-mock
 
 EXPOSE 9000
-CMD ["python", "/app/mock_server.py"]
-
+CMD ["oxidellm-mock"]

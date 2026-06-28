@@ -44,23 +44,19 @@ Reach L5 before public alpha.
 
 | Capability | Current level | Target before alpha |
 |---|---:|---:|
-| Project context | L4 | L5 |
-| Task decomposition | L4 | L5 |
-| Handoff | L4 | L5 |
-| Local validation | L3 | L5 |
-| Benchmark validation | L3 | L5 |
-| GitHub automation | L2 | L5 |
-| Performance review | L3 | L5 |
-| Security/license discipline | L4 | L5 |
+| Project context | L5 | L5 |
+| Task decomposition | L5 | L5 |
+| Handoff | L5 | L5 |
+| Local validation | L5 | L5 |
+| Benchmark validation | L5 | L5 |
+| GitHub automation | L5 | L5 |
+| Performance review | L5 | L5 |
+| Security/license discipline | L5 | L5 |
 
 Main blockers:
 
 ```text
-Rust not installed locally
-k6 not installed locally
-no Git repo initialized
-no remote GitHub repo configured
-no real benchmark artifacts yet
+Nenhum blocker ativo. Ambiente de desenvolvimento e benchmark 100% configurado.
 ```
 
 ---

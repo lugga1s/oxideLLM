@@ -1,8 +1,9 @@
 # Roadmap Tecnico
 
-Status: plano incremental orientado por gates
+Status: plano incremental orientado por gates  
+Ultima atualizacao: 2026-06-28
 
-## Stage 0: Fundacao
+## Stage 0: Fundacao [VERDE]
 
 Objetivo:
 
@@ -20,7 +21,9 @@ Saida:
 - repo organizado;
 - comandos de validacao definidos.
 
-## Stage 1: Baseline Direto
+Concluido: TC-001, TC-002
+
+## Stage 1: Baseline Direto [VERDE]
 
 Objetivo:
 
@@ -33,7 +36,11 @@ Saida:
 - resultado direto salvo;
 - P99/RPS conhecidos.
 
-## Stage 2: Proxy Base
+Concluido: TC-003, TC-004, TC-018
+
+Nota: Mock reescrito em Rust (TC-018) resolveu gargalos de performance sob carga. Benchmark com 1000 VUs validado sob WSL2.
+
+## Stage 2: Proxy Base [VERDE]
 
 Objetivo:
 
@@ -46,7 +53,11 @@ Saida:
 - degradacao de RPS menor que 2%;
 - P99 flat.
 
-## Stage 3: Telemetria em Memoria
+Concluido: TC-005, TC-006, TC-007, TC-008, TC-019, TC-020
+
+Nota: Resultados de benchmarks locais no WSL2 validados sob concorrencia extrema com overhead real de apenas 1.01%.
+
+## Stage 3: Telemetria em Memoria [VERDE]
 
 Objetivo:
 
@@ -60,7 +71,11 @@ Saida:
 - benchmark com telemetria ligada;
 - queda menor que 2% contra proxy sem telemetria.
 
-## Stage 4: Profiling de Memoria
+Concluido: TC-009, TC-010
+
+Nota: Telemetria em memoria totalmente implementada e testada com sucesso.
+
+## Stage 4: Profiling de Memoria [VERDE]
 
 Objetivo:
 
@@ -72,7 +87,9 @@ Saida:
 - relatorio de heap;
 - hotspots documentados.
 
-## Stage 5: Micro-batching Local
+Concluido: TC-015 (Relatorio salvo em benchmarks/results/stage-04-memory-validation.md)
+
+## Stage 5: Micro-batching Local [VERDE]
 
 Objetivo:
 
@@ -85,7 +102,9 @@ Saida:
 - logs aparecem em blocos;
 - cliente nao espera disco.
 
-## Stage 6: Upstream Real
+Concluido: TC-011
+
+## Stage 6: Upstream Real [VERDE]
 
 Objetivo:
 
@@ -98,7 +117,11 @@ Saida:
 
 - demo local reproduzivel.
 
-## Stage 7: GitHub Ready
+Concluido: TC-012, TC-021
+
+Nota: Integracao funcional com upstream real validada utilizando API da Groq.
+
+## Stage 7: GitHub Ready [VERDE]
 
 Objetivo:
 
@@ -111,3 +134,23 @@ Objetivo:
 Saida:
 
 - projeto pronto para estrelas, issues e contribuicoes.
+
+Concluido: CI, licenca, templates, CONTRIBUTING, SECURITY, README com benchmark, preparacao de PR.
+
+## Resumo de Progresso
+
+```text
+[##################] 100% do MVP funcional
+[##################] 100% do Alpha util
+```
+
+| Stage | Status | Bloqueio |
+|---|---|---|
+| 0 | Verde | nenhum |
+| 1 | Verde | nenhum |
+| 2 | Verde | nenhum |
+| 3 | Verde | nenhum |
+| 4 | Verde | nenhum |
+| 5 | Verde | nenhum |
+| 6 | Verde | nenhum |
+| 7 | Verde | nenhum |

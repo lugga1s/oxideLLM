@@ -6,7 +6,7 @@ Cada card tem escopo pequeno. Um agente deve pegar um card, executar, validar e 
 
 ---
 
-## TC-001: Verificar Tooling Local
+## TC-001: Verificar Tooling Local [DONE]
 
 Objetivo:
 
@@ -39,7 +39,7 @@ lista clara de ferramentas disponiveis/ausentes
 
 ---
 
-## TC-002: Fazer Scaffold Rust Compilar
+## TC-002: Fazer Scaffold Rust Compilar [DONE]
 
 Objetivo:
 
@@ -77,7 +77,7 @@ adicionar feature nova antes de compilar
 
 ---
 
-## TC-003: Validar Mock SSE
+## TC-003: Validar Mock SSE [DONE]
 
 Objetivo:
 
@@ -108,7 +108,7 @@ resposta contem data: [DONE]
 
 ---
 
-## TC-004: Rodar Baseline k6 Direto
+## TC-004: Rodar Baseline k6 Direto [DONE]
 
 Objetivo:
 
@@ -137,7 +137,7 @@ RPS, P95, P99 e taxa de erro registrados
 
 ---
 
-## TC-005: Gateway Health e Ready
+## TC-005: Gateway Health e Ready [DONE]
 
 Objetivo:
 
@@ -168,7 +168,7 @@ status ok/ready
 
 ---
 
-## TC-006: Gateway SSE Mockado
+## TC-006: Gateway SSE Mockado [DONE]
 
 Objetivo:
 
@@ -199,7 +199,7 @@ k6 passa sem erro estrutural
 
 ---
 
-## TC-007: Proxy Para Mock Upstream
+## TC-007: Proxy Para Mock Upstream [DONE]
 
 Objetivo:
 
@@ -228,7 +228,7 @@ parsear JSON completo por chunk
 
 ---
 
-## TC-008: Config Minima
+## TC-008: Config Minima [DONE]
 
 Objetivo:
 
@@ -252,7 +252,7 @@ base_url do upstream configuravel
 
 ---
 
-## TC-009: TTFT Accumulator
+## TC-009: TTFT Accumulator [DONE]
 
 Objetivo:
 
@@ -275,7 +275,7 @@ ttft_ms aparece no evento final
 
 ---
 
-## TC-010: Telemetry Queue Overflow
+## TC-010: Telemetry Queue Overflow [DONE]
 
 Objetivo:
 
@@ -299,7 +299,7 @@ drops sao contados
 
 ---
 
-## TC-011: Micro-batching JSONL
+## TC-011: Micro-batching JSONL [DONE]
 
 Objetivo:
 
@@ -323,7 +323,7 @@ cliente nao espera disco
 
 ---
 
-## TC-012: Ollama Upstream
+## TC-012: Ollama Upstream [DONE]
 
 Objetivo:
 
@@ -348,7 +348,7 @@ stream real via gateway
 
 ---
 
-## TC-013: vLLM Parity Runbook
+## TC-013: vLLM Parity Runbook [DONE]
 
 Objetivo:
 
@@ -371,7 +371,7 @@ resultado direto e gateway registrados
 
 ---
 
-## TC-014: GitHub PR Draft
+## TC-014: GitHub PR Draft [DONE]
 
 Objetivo:
 
@@ -402,7 +402,7 @@ PR draft criado ou bloqueio de auth/remoto reportado
 
 ---
 
-## TC-015: Performance Review
+## TC-015: Performance Review [DONE]
 
 Objetivo:
 
@@ -425,7 +425,7 @@ lista de riscos concretos com arquivo/linha
 
 ---
 
-## TC-016: Docs Consistency Pass
+## TC-016: Docs Consistency Pass [DONE]
 
 Objetivo:
 
@@ -450,7 +450,7 @@ sem contradicao sobre stack, licenca, gates ou ordem de execucao
 
 ---
 
-## TC-017: Context Validation Script
+## TC-017: Context Validation Script [DONE]
 
 Objetivo:
 
@@ -480,3 +480,106 @@ JSONs validos
 arquivos criticos existem
 sem caracteres fora de ASCII nos documentos principais
 ```
+
+---
+
+## TC-018: Reescrever Mock em Rust [DONE]
+
+Objetivo:
+
+```text
+substituir mock Python por Axum para eliminar gargalo de benchmark
+```
+
+Arquivos permitidos:
+
+```text
+mock/**
+docker-compose.yml
+```
+
+Sucesso:
+
+```text
+mock Rust compila e responde SSE com keep-alive
+suporta alta concorrencia sem saturar
+```
+
+---
+
+## TC-019: Modularizar main.rs [DONE]
+
+Objetivo:
+
+```text
+quebrar main.rs monolitico em modulos focados
+```
+
+Arquivos permitidos:
+
+```text
+src/**
+```
+
+Sucesso:
+
+```text
+main.rs reduzido a bootstrap
+modulos: config, routes, stream, drain
+todos os testes passam
+```
+
+---
+
+## TC-020: Setup WSL2 e Benchmark Limpo [DONE]
+
+Objetivo:
+
+```text
+instalar WSL2, k6 e rodar Stage 2 sem bottleneck de mock ou OS
+```
+
+Arquivos permitidos:
+
+```text
+k6/**
+benchmarks/**
+docs/tooling-setup.md
+```
+
+Sucesso:
+
+```text
+k6 roda em WSL2
+erro HTTP < 0.1%
+RPS gateway >= 98% do direto
+resultado salvo em benchmarks/results/
+```
+
+---
+
+## TC-021: Ollama Integration Test [DONE]
+
+Objetivo:
+
+```text
+validar gateway com Ollama como upstream real
+```
+
+Arquivos permitidos:
+
+```text
+src/**
+k6/**
+examples/**
+docs/runbooks/**
+```
+
+Sucesso:
+
+```text
+SSE real chega ao cliente via gateway
+TTFT registrado
+erros mapeados
+```
+

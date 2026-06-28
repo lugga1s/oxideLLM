@@ -1,0 +1,193 @@
+{
+  "main": {
+    "id": "533b293d001ac641",
+    "type": "split",
+    "children": [
+      {
+        "id": "2945364e302423cc",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8caeb48ff7ac1d25",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Nova aba"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8e0c6ea542bf6bd0",
+    "type": "split",
+    "children": [
+      {
+        "id": "02e96ffd3c0ce578",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7c5ded64b0fedf7a",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de arquivos"
+            }
+          },
+          {
+            "id": "5bef805174aa94a8",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Procurar"
+            }
+          },
+          {
+            "id": "571c942efddf2aac",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "48201ff9a6c9ae57",
+    "type": "split",
+    "children": [
+      {
+        "id": "d1e4ce1c8bbd4d13",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "38a0beeb178b5c0d",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Links inversos"
+            }
+          },
+          {
+            "id": "28591233d419ebbd",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Links de saída"
+            }
+          },
+          {
+            "id": "103da133a998b3bf",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "d1e72b0d41dc262b",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas as propriedades"
+            }
+          },
+          {
+            "id": "2cd064ef8bf48538",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Sumário"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir a troca rápida": false,
+      "graph:Abrir visualização em gráfico": false,
+      "canvas:Criar novo canvas": false,
+      "daily-notes:Abrir a nota de hoje": false,
+      "templates:Inserir modelo": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Criar nova base": false
+    }
+  },
+  "active": "8caeb48ff7ac1d25",
+  "lastOpenFiles": [
+    "mock/target/debug/incremental/oxidellm_mock-1d0f8hxt1vtl0/s-hjvv3d821t-1dmj5qi-29dwf53elb2o8gzjycg39vbv3/work-products.bin",
+    "mock/target/debug/incremental/oxidellm_mock-1d0f8hxt1vtl0/s-hjvv3d821t-1dmj5qi-29dwf53elb2o8gzjycg39vbv3/query-cache.bin",
+    "mock/target/debug/incremental/oxidellm_mock-1d0f8hxt1vtl0/s-hjvv3d821t-1dmj5qi-29dwf53elb2o8gzjycg39vbv3/dep-graph.bin",
+    "mock/target/debug/incremental/oxidellm_mock-1d0f8hxt1vtl0/s-hjvv3d821t-1dmj5qi-29dwf53elb2o8gzjycg39vbv3",
+    "mock/target/debug/deps/liboxidellm_mock-354794327fa515d3.rmeta",
+    "mock/target/debug/incremental/oxidellm_mock-11m1eyrjj4ueb/s-hjvv3d81zy-1eb2c6v-2c6srn06wavvzpdzq2i977s3c/work-products.bin",
+    "mock/target/debug/incremental/oxidellm_mock-11m1eyrjj4ueb/s-hjvv3d81zy-1eb2c6v-2c6srn06wavvzpdzq2i977s3c/query-cache.bin",
+    "mock/target/debug/incremental/oxidellm_mock-11m1eyrjj4ueb/s-hjvv3d81zy-1eb2c6v-2c6srn06wavvzpdzq2i977s3c/dep-graph.bin",
+    "mock/target/debug/incremental/oxidellm_mock-11m1eyrjj4ueb/s-hjvv3d81zy-1eb2c6v-2c6srn06wavvzpdzq2i977s3c",
+    "mock/target/debug/deps/liboxidellm_mock-98384ee76be982cb.rmeta",
+    "mock/target/debug/deps/oxidellm_mock-98384ee76be982cb.d"
+  ]
+}
