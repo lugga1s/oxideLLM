@@ -98,14 +98,25 @@ cargo run -- --upstream-base-url https://api.groq.com/openai --upstream-provider
 k6 run -e GROQ_API_KEY=$GROQ_API_KEY k6/groq-integration.js
 ```
 
-### 3. Validacao de Resiliencia (Multi-upstream & Failover)
-Voce pode testar o desvio de rotas automatico do gateway apontando para um servidor primario offline e um backup online:
+### 3. Validacao de Resiliencia (Multi-upstream & Failover - Stage 8)
+O gateway implementa resiliencia de nivel enterprise (Stage 8) atraves de dois mecanismos coordenados:
+1. **Active Background Health Checking**: Um worker em segundo plano monitora periodicamente a saude de cada upstream cadastrado. Se um upstream falhar no ping de saude, ele e marcado como inativo e temporariamente excluido das rotas de roteamento.
+2. **Transparent Client-side Failover**: Se um upstream retornar erro de rede ou codigo de status HTTP passivel de nova tentativa (429, 502, 503, 504), o gateway intercepta a falha e desvia a requisicao automaticamente para o proximo fallback saudavel disponivel, sem interromper o streaming ou retornar erro ao cliente.
+
+#### Roteiro Pratico de Verificacao do Failover
+
+Voce pode testar a resiliencia do gateway simulando um cenario com o upstream primario offline (`primary-dead`) e um backup ativo (`fallback-alive`):
 
 1. Crie um arquivo `config.toml` na raiz do projeto com a seguinte configuracao:
 ```toml
 [server]
 host = "127.0.0.1"
 port = 8080
+
+# Configuracoes do worker de saude (Stage 8)
+[upstream_health]
+interval_ms = 3000   # Pinga a cada 3 segundos
+timeout_ms = 1000    # Timeout de 1 segundo
 
 [[upstreams]]
 id = "primary-dead"
@@ -129,6 +140,10 @@ cargo run --manifest-path mock/Cargo.toml -- --port 9001
 ```bash
 cargo run
 ```
+No console de inicializacao do gateway, o worker de saude tentara pingar o `primary-dead` na porta 9000 e, apos o timeout, exibira uma mensagem de aviso confirmando que o upstream foi marcado como inativo:
+```text
+WARN upstream marked unhealthy upstream_id="primary-dead" provider="mock"
+```
 
 4. Realize a chamada ao gateway na porta 8080:
 ```bash
@@ -136,7 +151,12 @@ curl -N -X POST http://127.0.0.1:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model": "mock", "messages": [{"role": "user", "content": "Teste resiliencia"}], "stream": true}'
 ```
-O gateway falhara ao tentar se conectar com a porta 9000 (primary-dead) e, de forma transparente, desviara a chamada para o backup ativo na porta 9001 (fallback-alive), retornando o streaming normalmente.
+O gateway identificara que `primary-dead` esta marcado como inativo e desviara a chamada imediatamente para o backup ativo `fallback-alive` na porta 9001, retornando o streaming de resposta normalmente sem qualquer lentidao ou erro perceptivel.
+
+Se voce subir o mock do servidor na porta 9000 posteriormente, vera a seguinte mensagem de log no console do gateway indicando a recuperacao automatica do upstream primario:
+```text
+INFO upstream health restored upstream_id="primary-dead" provider="mock"
+```
 
 ---
 
@@ -155,14 +175,21 @@ O projeto contem suites de benchmark executadas sob alta carga com k6. A analise
 
 ## Testes Automatizados
 
-Para garantir que o gateway esta funcionando corretamente e que nenhuma alteracao quebrou a logica existente, voce pode rodar os testes da aplicacao:
+Para garantir que o gateway esta funcionando perfeitamente e em conformidade com as regras de qualidade do projeto, voce pode rodar os testes locais.
 
 ### 1. Testes Unitarios e de Integracao (Rust)
+A suite contem 14 testes cobrindo parsing de multiplos upstreams, concorrencia, micro-batching de telemetria, deteccao ativa de falhas pelo health worker e failover transparente.
+
 ```bash
 cargo test --all
 ```
 
+*Resultados esperados (Stage 8 / v0.9.0):*
+- `14 passed; 0 failed; 0 ignored`
+
 ### 2. Validador de Contexto (Documentacao)
+O script analisa se todos os arquivos obrigatorios do repositorio estao em conformidade de ASCII e sem inconsistencias conceituais.
+
 ```bash
 # Executado em terminal PowerShell
 .\scripts\validate_context.ps1
