@@ -84,8 +84,14 @@ async fn check_upstreams_once(
     health: &UpstreamHealthState,
     timeout_ms: u64,
 ) {
-    for (index, upstream) in upstreams.iter().enumerate() {
-        let healthy = check_upstream(http_client, upstream, timeout_ms).await;
+    let futures: Vec<_> = upstreams
+        .iter()
+        .map(|upstream| check_upstream(http_client, upstream, timeout_ms))
+        .collect();
+
+    let results = futures_util::future::join_all(futures).await;
+
+    for (index, (upstream, healthy)) in upstreams.iter().zip(results).enumerate() {
         let Some(previous) = health.set_healthy(index, healthy) else {
             continue;
         };

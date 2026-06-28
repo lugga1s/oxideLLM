@@ -11,7 +11,7 @@ use http_body_util::BodyExt;
 use reqwest::Client;
 use serde::Serialize;
 use tower_http::limit::RequestBodyLimitLayer;
-use tracing::warn;
+use tracing::{info, warn};
 
 use crate::config::ResolvedUpstream;
 use crate::drain::UpstreamHealthState;
@@ -132,6 +132,10 @@ async fn chat_completions(
 
     let mut response_builder = axum::response::Response::builder().status(status_code);
 
+    if let Some(ref uid) = guard.upstream_id {
+        response_builder = response_builder.header("x-upstream-id", uid);
+    }
+
     for (name, value) in upstream_res.headers().iter() {
         if name != axum::http::header::TRANSFER_ENCODING && name != axum::http::header::CONNECTION {
             response_builder = response_builder.header(name.as_str(), value.as_bytes());
@@ -204,6 +208,14 @@ async fn send_with_failover(
                         "upstream returned retryable status, trying next configured upstream"
                     );
                     continue;
+                }
+
+                if index > 0 {
+                    info!(
+                        upstream_id = %upstream.id,
+                        provider = %upstream.provider,
+                        "fallback upstream successfully handled the request"
+                    );
                 }
 
                 return Ok((res, upstream.id.clone()));
