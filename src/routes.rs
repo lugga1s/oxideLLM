@@ -19,7 +19,7 @@ use tracing::{info, warn};
 use crate::config::ResolvedUpstream;
 use crate::drain::UpstreamHealthState;
 use crate::stream::{GuardedStream, TelemetryStreamGuard};
-use crate::telemetry::{TelemetryEvent, TelemetrySender};
+use crate::telemetry::TelemetrySender;
 use crate::unix_ms;
 
 // -- Shared application state ----------------------------------------
@@ -130,11 +130,6 @@ async fn chat_completions(
         .total_requests
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
-    state.telemetry.try_record(TelemetryEvent::request_started(
-        request_id.clone(),
-        started_at_ms,
-    ));
-
     let mut guard = TelemetryStreamGuard {
         request_id,
         started_at_ms,
@@ -157,7 +152,11 @@ async fn chat_completions(
     };
     guard.bytes_in = body_bytes.len();
 
-    let model = extract_model_for_routing(&body_bytes);
+    let model = if state.upstreams.len() > 1 {
+        extract_model_for_routing(&body_bytes)
+    } else {
+        None
+    };
 
     let upstream_res =
         match send_with_failover(&state, &headers, body_bytes, model.as_deref()).await {

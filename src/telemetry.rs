@@ -13,7 +13,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "event_type", rename_all = "snake_case")]
 pub enum TelemetryEvent {
-    /// Fired when a request is first received by the gateway.
+    /// Optional event for real-time ingress visibility.
+    ///
+    /// The default gateway path relies on `RequestCompleted` for the durable
+    /// per-request record so it can keep telemetry work off the hot path.
     RequestStarted {
         /// Unique request ID.
         request_id: String,
