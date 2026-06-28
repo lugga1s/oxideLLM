@@ -98,6 +98,46 @@ cargo run -- --upstream-base-url https://api.groq.com/openai --upstream-provider
 k6 run -e GROQ_API_KEY=$GROQ_API_KEY k6/groq-integration.js
 ```
 
+### 3. Validacao de Resiliencia (Multi-upstream & Failover)
+Voce pode testar o desvio de rotas automatico do gateway apontando para um servidor primario offline e um backup online:
+
+1. Crie um arquivo `config.toml` na raiz do projeto com a seguinte configuracao:
+```toml
+[server]
+host = "127.0.0.1"
+port = 8080
+
+[[upstreams]]
+id = "primary-dead"
+provider = "mock"
+base_url = "http://127.0.0.1:9000"  # Servidor inativo
+priority = 1
+
+[[upstreams]]
+id = "fallback-alive"
+provider = "mock"
+base_url = "http://127.0.0.1:9001"  # Servidor ativo
+priority = 2
+```
+
+2. Inicialize o servidor mock ativo na porta 9001:
+```bash
+cargo run --manifest-path mock/Cargo.toml -- --port 9001
+```
+
+3. Inicialize o gateway em outro terminal (ele lera o `config.toml` automaticamente):
+```bash
+cargo run
+```
+
+4. Realize a chamada ao gateway na porta 8080:
+```bash
+curl -N -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "mock", "messages": [{"role": "user", "content": "Teste resiliencia"}], "stream": true}'
+```
+O gateway falhara ao tentar se conectar com a porta 9000 (primary-dead) e, de forma transparente, desviara a chamada para o backup ativo na porta 9001 (fallback-alive), retornando o streaming normalmente.
+
 ---
 
 ## Benchmarks de Performance (WSL2 / Localhost)
@@ -110,6 +150,23 @@ O projeto contem suites de benchmark executadas sob alta carga com k6. A analise
 | Conexao direta ao mock Rust | 20.282,05 req/s | 59,64 ms | 0,00% | *baseline* |
 | Gateway com telemetria ativa | 17.831,39 req/s | 74,40 ms | 0,00% | ~12.08% |
 | Gateway (logs em `/dev/null`) | 18.014,34 req/s | 73,68 ms | 0,00% | ~11.18% |
+
+---
+
+## Testes Automatizados
+
+Para garantir que o gateway esta funcionando corretamente e que nenhuma alteracao quebrou a logica existente, voce pode rodar os testes da aplicacao:
+
+### 1. Testes Unitarios e de Integracao (Rust)
+```bash
+cargo test --all
+```
+
+### 2. Validador de Contexto (Documentacao)
+```bash
+# Executado em terminal PowerShell
+.\scripts\validate_context.ps1
+```
 
 ---
 
