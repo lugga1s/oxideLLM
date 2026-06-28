@@ -1415,14 +1415,22 @@ Essa arquitetura transforma o gateway de um gargalo serializante em uma camada d
 
 ## 19. Validacao Pratica da Tese (Stage 2 - TC-020)
 
-Em 28 de junho de 2026, validamos a tese arquitetural com testes de carga extremos (1000 VUs em loopback WSL2). Os resultados empiricos confirmaram o acerto do design:
+Em 28 de junho de 2026, os artefatos locais existentes foram reconciliados para preparar o alpha v1. A leitura publica correta e:
 
-1. **Eficiencia do Proxy (Zero-Copy e Conectividade)**:
-   - Ao isolar a persistencia fisica (logs para `/dev/null`), o gateway oxideLLM demonstrou um overhead de apenas **1,01%** de vazao contra a conexao direta (RPS direto: 20.282,05 vs Gateway: 18.014,34).
-   - Isso valida a eficacia do encaminhamento pass-through de bytes do SSE sem reconstrucao de JSON e do pooling adequado de conexoes TCP.
+1. **Gateway com telemetria ativa**:
+   - Baseline direto: 20.282,05 req/s.
+   - Gateway: 17.831,39 req/s.
+   - Degradacao calculada contra o direto: **12,08%**.
+   - Esse valor fica dentro do gate local/virtualizado de Stage 2, que aceita degradacao menor que 15% em WSL2/localhost.
 
-2. **Telemetria Assincrona e Desacoplada (MPSC Worker)**:
-   - Com o micro-batching e o canal reativo Tokio MPSC ativos escrevendo ~1,07 milhao de eventos em disco (344MB de JSONL em 30s), a degradacao total foi de apenas **12,08%** (RPS Gateway: 17.831,39) sob gargalo severo da bridge de loopback virtualizada do WSL2.
-   - Nenhuma requisicao foi bloqueada ou perdida devido a transbordo de fila de telemetria (0 drops!).
+2. **Gateway com logs em `/dev/null`**:
+   - Gateway: 18.014,34 req/s.
+   - Degradacao calculada contra o direto: **11,18%**.
+   - O numero de **1,01%** mede apenas a diferenca entre gateway com logs em `/dev/null` e gateway com telemetria ativa. Ele nao deve ser publicado como overhead do gateway contra a conexao direta.
 
-Os numeros provam que o desacoplamento rigido entre o plano de dados (hot path) e o plano de telemetria (background worker) resolve o classico colapso de vazao dos proxies de mercado, viabilizando um gateway com performance ultra-alta.
+3. **Limite da evidencia antiga**:
+   - Os JSONs brutos antigos registram RPS, P95 e erro HTTP, mas nao registram P99.
+   - O resumo oficial fica em `benchmarks/alpha-v1-benchmark-summary.md`.
+   - Para claim publico completo, rodar novamente o k6 com `handleSummary()` atualizado para registrar P95/P99, ambiente, commit e comandos.
+
+Esses resultados sustentam que a telemetria permanece desacoplada do caminho critico em modo local de laboratorio, mas nao devem ser usados para afirmar overhead de 1,01% contra o baseline direto.

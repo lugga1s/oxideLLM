@@ -6,7 +6,7 @@ Data: 2026-06-28
 ## Contexto
 
 Durante o benchmark TC-020 (1000 VUs, ~20k RPS de baseline direto), otimizamos a telemetria substituindo a `ArrayQueue` por `tokio::sync::mpsc::channel` e utilizando um drain worker reativo. Isso eliminou transbordamentos e contencao de CAS na fila, reduzindo a degradacao do gateway de **62.86%** para **12.08%**. 
-No entanto, o gate estrito de **2%** de degradacao nao foi alcancado sob concorrencia total (1000 VUs) em loopback local no WSL2. Para investigar, rodamos o gateway redirecionando a telemetria para `/dev/null` (isolando a persistencia fisica), alcancando um overhead puro de apenas **1.01%** contra o baseline.
+No entanto, o gate estrito de **2%** de degradacao nao foi alcancado sob concorrencia total (1000 VUs) em loopback local no WSL2. Para investigar, rodamos o gateway redirecionando a telemetria para `/dev/null` (isolando a persistencia fisica). A reconciliacao posterior dos artefatos mostrou que o resultado correto contra o baseline direto e **11.18%** de degradacao; o numero de **1.01%** mede apenas a diferenca entre o gateway com logs em `/dev/null` e o gateway com telemetria ativa.
 
 ## Decisao
 
@@ -17,7 +17,7 @@ Ajustar o criterio de sucesso do Stage 2 em `docs/validation-gates.md`:
 
 ## Racional
 
-A bridge de rede virtualizada do WSL2/Hyper-V introduz overhead significativo de processamento de pacotes por duplicar o trafego de rede concorrente na CPU do mesmo host (k6 -> gateway -> mock). O fato de que o proxy isolado adicionou apenas 1% de overhead real comprova que o plano de dados e extremamente rapido e eficiente ("flat"), atingindo o objetivo arquitetural real do projeto. A degradacao de 12% observada sob telemetria ativa completa e gravacao massiva de dados (11.5 MB/s) no disco virtual do WSL2 e considerada aceitavel e um resultado de performance muito superior aos gateways tradicionais de mercado que sofrem 45% a 75% de queda.
+A bridge de rede virtualizada do WSL2/Hyper-V introduz overhead significativo de processamento de pacotes por duplicar o trafego de rede concorrente na CPU do mesmo host (k6 -> gateway -> mock). A reconciliacao dos artefatos indica que a telemetria ativa acrescentou cerca de 1,01% de diferenca relativa contra o modo com logs em `/dev/null`, enquanto a degradacao contra o direto permaneceu em 12,08% com telemetria ativa e 11,18% com logs em `/dev/null`. Esses resultados ficam dentro do gate local/virtualizado de 15%, mas nao devem ser usados como claim publico de paridade ou overhead de 1% contra o baseline direto sem nova execucao com P99 registrado.
 
 ## Consequencias
 
@@ -28,3 +28,16 @@ Positivas:
 
 Negativas:
 - Nenhuma. O rigor de desempenho original permanece garantido para implantacoes de producao distribuidas.
+
+## Errata de Reconciliacao - 2026-06-28
+
+Na preparacao do alpha v1, os artefatos visiveis em `benchmarks/results/` foram reconciliados em `benchmarks/alpha-v1-benchmark-summary.md`.
+
+Leitura corrigida:
+
+- Baseline direto: 20.282,05 req/s.
+- Gateway com telemetria ativa: 17.831,39 req/s, degradacao de 12,08% contra o direto.
+- Gateway com logs em `/dev/null`: 18.014,34 req/s, degradacao de 11,18% contra o direto.
+- O numero de 1,01% mede a diferenca entre gateway com logs em `/dev/null` e gateway com telemetria ativa. Ele nao deve ser usado como overhead do gateway contra o baseline direto.
+
+Os JSONs brutos antigos nao registram P99. Para claim publico completo, repetir direto vs gateway com `k6/proxy-vs-direct.js` atualizado, usando `SUMMARY_PATH` para salvar P95/P99 via `handleSummary()`.
