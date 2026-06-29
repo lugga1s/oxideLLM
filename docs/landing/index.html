@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>oxideLLM — The 1% Overhead Async LLM Proxy & Gateway</title>
+  <title>oxideLLM - Evidence-first async LLM proxy and gateway</title>
   <!-- SEO Meta Tags -->
-  <meta name="description" content="oxideLLM is an ultra-fast, Rust-native OpenAI-compatible gateway that keeps telemetry and database persistence off the critical request path. Save up to 80% on server costs and token leakage.">
-  <meta name="keywords" content="LLM gateway, LLM proxy, Rust LLM, vLLM load balancer, Ollama proxy, zero overhead LLM, async telemetry">
+  <meta name="description" content="oxideLLM is a Rust-native OpenAI-compatible gateway that keeps telemetry and persistence off the critical request path, with reproducible direct-vs-gateway benchmarks.">
+  <meta name="keywords" content="LLM gateway, LLM proxy, Rust LLM, vLLM load balancer, Ollama proxy, SSE proxy, async telemetry">
   <link rel="canonical" href="https://github.com/lugga1s/oxideLLM">
   
   <!-- Premium Fonts -->
@@ -30,8 +30,8 @@
         <span class="logo-text">oxide<span class="highlight">LLM</span></span>
       </div>
       <nav>
-        <a href="#proofs">Architectural Proofs</a>
-        <a href="#calculator">TCO Calculator</a>
+        <a href="#proofs">Architecture</a>
+        <a href="#calculator">TCO Model</a>
         <a href="#benchmarks">Benchmarks</a>
         <a href="https://github.com/lugga1s/oxideLLM" class="btn btn-secondary btn-sm" id="github-link">GitHub</a>
       </nav>
@@ -41,13 +41,13 @@
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-container">
-      <div class="badge" id="hero-badge">🦀 Compiled Rust • Zero GC • Async Telemetry</div>
-      <h1 class="hero-title">The <span class="gradient-text">1% Overhead</span> LLM Gateway</h1>
-      <p class="hero-subtitle">Stop wasting up to 75% of your GPU and API throughput on synchronous logging and db writes. oxideLLM decouples persistence from the critical request path.</p>
+      <div class="badge" id="hero-badge">Compiled Rust | SSE pass-through | Bounded async telemetry</div>
+      <h1 class="hero-title">Fast LLM streaming without blocking telemetry</h1>
+      <p class="hero-subtitle">oxideLLM is an OpenAI-compatible Rust gateway that forwards SSE incrementally, routes across upstreams, and moves analytics work into bounded background batches.</p>
       
       <div class="hero-actions">
-        <a href="https://github.com/lugga1s/oxideLLM" class="btn btn-primary" id="cta-get-started">Start on GitHub</a>
-        <a href="#calculator" class="btn btn-outline" id="cta-calc">Calculate Savings</a>
+        <a href="https://github.com/lugga1s/oxideLLM" class="btn btn-primary" id="cta-get-started">View on GitHub</a>
+        <a href="#calculator" class="btn btn-outline" id="cta-calc">Model TCO</a>
       </div>
 
       <!-- Quick Command Snippet -->
@@ -60,7 +60,7 @@
           <span class="prompt">$</span> cargo run --release -- --host 127.0.0.1 --port 8080
           <br><span class="log-info">[2026-06-29 12:00:00 INFO] Starting oxideLLM on 127.0.0.1:8080</span>
           <br><span class="log-info">[2026-06-29 12:00:00 INFO] Telemetry worker initialized with batch_size=1000</span>
-          <br><span class="log-info">[2026-06-29 12:00:01 INFO] Upstream 'primary' connected & healthy (Ollama)</span>
+          <br><span class="log-info">[2026-06-29 12:00:01 INFO] Upstream 'primary' connected and healthy (Ollama)</span>
         </div>
       </div>
     </div>
@@ -70,29 +70,29 @@
   <section class="metrics-bar">
     <div class="metrics-container">
       <div class="metric-card">
-        <h3>~5μs</h3>
-        <p>Internal Routing Latency</p>
+        <h3>13.39%</h3>
+        <p>Stage 2 WSL2 1000 VU Degradation</p>
       </div>
       <div class="metric-card">
-        <h3>~1%</h3>
-        <p>Data-Plane Overhead</p>
+        <h3>0</h3>
+        <p>Stream Path Allocations Attributed in DHAT</p>
       </div>
       <div class="metric-card">
-        <h3>15MB</h3>
-        <p>Single Static Binary</p>
+        <h3>1.77</h3>
+        <p>Context Switches per Request in Profiling</p>
       </div>
       <div class="metric-card">
-        <h3>Up to 4x</h3>
-        <p>EC2 Server Consolidation</p>
+        <h3>0.00%</h3>
+        <p>HTTP Errors in Stage 2 Local Run</p>
       </div>
     </div>
   </section>
 
-  <!-- Architectural Proofs Section -->
+  <!-- Architecture Section -->
   <section id="proofs" class="proofs-section">
     <div class="section-header">
-      <h2>7 Core Architectural Proofs</h2>
-      <p>How oxideLLM eliminates the typical gateway bottleneck by writing code that respects computer hardware boundaries.</p>
+      <h2>Architecture Checks</h2>
+      <p>The current alpha focuses on one contract: move bytes quickly and keep telemetry outside the client response path.</p>
     </div>
 
     <div class="proofs-grid">
@@ -100,7 +100,7 @@
       <div class="proof-card">
         <div class="card-num">01</div>
         <h3>Telemetry Off the Critical Path</h3>
-        <p>Uses a bounded lock-free MPSC queue. Telemetry events are offloaded in microseconds; client connections never wait for DB writes or log flushes.</p>
+        <p>Uses a bounded MPSC queue with non-blocking try_send. Client connections do not wait for database writes or log flushes.</p>
         <pre><code>// try_send is non-blocking
 self.sender.try_send(event)</code></pre>
       </div>
@@ -118,7 +118,7 @@ Poll::Ready(Some(Ok(bytes)))</code></pre>
       <div class="proof-card">
         <div class="card-num">03</div>
         <h3>Micro-Batched Persistence</h3>
-        <p>Events are grouped in memory and flushed asynchronously to disk (JSONL/Parquet) every 1000 items or 500ms, reducing disk IOPS by 99.9%.</p>
+        <p>Events are grouped in memory and flushed asynchronously to disk every 1000 items or 500ms, reducing write frequency versus per-request persistence.</p>
         <pre><code>if buffer.len() >= batch_size {
   flush_buffer(&amp;mut buffer).await;
 }</code></pre>
@@ -162,11 +162,11 @@ impl Drop for StreamGuard</code></pre>
     </div>
   </section>
 
-  <!-- Interactive TCO Calculator -->
+  <!-- Interactive TCO Model -->
   <section id="calculator" class="calculator-section">
     <div class="section-header">
-      <h2>Total Cost of Ownership (TCO) Calculator</h2>
-      <p>Adjust your current scale to see how oxideLLM consolidated infrastructure and stream-cancel tech reduces monthly expenditures.</p>
+      <h2>Total Cost of Ownership (TCO) Model</h2>
+      <p>Adjust the assumptions to model infrastructure and token-waste scenarios. Treat the output as planning input, not a guaranteed savings claim.</p>
     </div>
 
     <div class="calc-container">
@@ -266,8 +266,8 @@ impl Drop for StreamGuard</code></pre>
         <div class="savings-banner">
           <div class="savings-pct" id="savings-percent">87.5%</div>
           <div class="savings-desc">
-            <span class="savings-amount" id="savings-monthly">Save $1,400 / month</span>
-            <span class="savings-yearly" id="savings-yearly">($16,800 saved per year)</span>
+            <span class="savings-amount" id="savings-monthly">Modeled savings: $1,400 / month</span>
+            <span class="savings-yearly" id="savings-yearly">($16,800 modeled per year)</span>
           </div>
         </div>
       </div>
@@ -278,7 +278,7 @@ impl Drop for StreamGuard</code></pre>
   <section id="benchmarks" class="benchmarks-section">
     <div class="section-header">
       <h2>How oxideLLM Compares</h2>
-      <p>A direct architecture and performance breakdown against traditional runtime gateways.</p>
+      <p>A concise architecture comparison against common runtime gateway patterns.</p>
     </div>
 
     <div class="matrix-container">
@@ -321,28 +321,12 @@ impl Drop for StreamGuard</code></pre>
               <td>No</td>
             </tr>
             <tr>
-              <td><strong>Startup / Init</strong></td>
-              <td class="accent-cell">~5ms</td>
-              <td>~500ms - 2s</td>
-              <td>~200-500ms</td>
-              <td>~200-500ms</td>
-              <td>~100-300ms</td>
-            </tr>
-            <tr>
               <td><strong>Dependencies</strong></td>
               <td class="accent-cell">None (Single Binary)</td>
               <td>Python, pip packages</td>
               <td>Node, npm, Redis</td>
               <td>Node, Postgres, Redis</td>
               <td>OpenResty, DB optional</td>
-            </tr>
-            <tr>
-              <td><strong>Docker Image Size</strong></td>
-              <td class="accent-cell">~15 MB (Distroless)</td>
-              <td>~1-2 GB</td>
-              <td>~500 MB - 1 GB</td>
-              <td>~500 MB - 1 GB</td>
-              <td>~150-300 MB</td>
             </tr>
           </tbody>
         </table>
@@ -355,7 +339,7 @@ impl Drop for StreamGuard</code></pre>
     <div class="footer-container">
       <div class="footer-brand">
         <span class="logo-text footer-logo-text">oxide<span class="highlight">LLM</span></span>
-        <p>The high-performance open-source LLM proxy. Kept ultra fast, simple, and dependency-free.</p>
+        <p>The performance-focused open-source LLM proxy. Simple, local-first, and dependency-light.</p>
       </div>
       <div class="footer-meta">
         <p>Licensed under <strong>AGPL-3.0-or-later</strong>. Commercial dual licensing is available for enterprise integration.</p>
