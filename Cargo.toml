@@ -23,6 +23,10 @@ uuid = { version = "1", features = ["v4", "serde"] }
 futures-util = "0.3"
 http-body-util = "0.1"
 reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls", "charset", "http2"] }
+dhat = { version = "0.3.3", optional = true }
+
+[features]
+dhat-heap = ["dep:dhat"]
 
 [dev-dependencies]
 tower = "0.5"
