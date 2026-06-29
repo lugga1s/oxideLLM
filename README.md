@@ -11,7 +11,7 @@
 [![Rust](https://img.shields.io/badge/Rust-1.96+-f74c00.svg?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Version](https://img.shields.io/badge/version-0.9.0--alpha-orange.svg?style=flat-square)](Cargo.toml)
 
-[Quick Start](#quick-start) | [Benchmarks](#performance) | [Architecture](#architecture) | [Configuration](#configuration) | [Contributing](CONTRIBUTING.md) | [Competitive Analysis](.context/competitive-analysis.md) | [GTM Launch Plan](.context/marketing-launch-plan.md)
+[Quick Start](#quick-start) | [Benchmarks](#performance) | [Architecture](#architecture) | [Configuration](#configuration) | [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -27,7 +27,7 @@ Traditional LLM gateways couple **proxy**, **tracing**, **logging**, and **datab
 | Traditional gateway (4 workers + Postgres + Redis) | ~8.8 req/s | 55% | **-45%** |
 | Traditional gateway (1 worker + Postgres + Redis) | ~3.9 req/s | 24% | **-75.6%** |
 
-> Source: internal load tests with 500 concurrent requests against vLLM. Documented in [bottlenecks.md](.context/bottlenecks.md).
+> Source: internal load tests with 500 concurrent requests against vLLM (documented in internal context bottlenecks.md).
 
 **oxideLLM** solves this by rigidly separating the data plane from telemetry: the task that owns the client socket **never waits** for disk I/O, log flushes, or database writes.
 
@@ -56,7 +56,7 @@ Traditional LLM gateways couple **proxy**, **tracing**, **logging**, and **datab
 | **RAM (per 1000 req)** | — | **10 - 50 MB** | 500 MB - 2 GB | 300 MB - 1 GB | 100 - 300 MB |
 | **RAM (per req)** | — | **~2-5 KB** | ~50-200 KB | ~30-100 KB | ~10-30 KB |
 
-*\*Note: Benchmarks of 18,118 req/s were validated locally under WSL2. In native Linux (eliminating Hyper-V bridge virtualization overhead), data-plane overhead is only **~1%**. See [competitive-analysis.md](.context/competitive-analysis.md) and [validation-gates.md](docs/validation-gates.md) for full proofs.*
+*\*Note: Benchmarks of 18,118 req/s were validated locally under WSL2. In native Linux (eliminating Hyper-V bridge virtualization overhead), data-plane overhead is only **~1%**. See internal competitive-analysis.md and [validation-gates.md](docs/validation-gates.md) for full proofs.*
 
 ---
 
@@ -122,7 +122,7 @@ k6 run -e VUS=1000 -e DURATION=30s \
 
 Full methodology: [benchmarks/](benchmarks/) | Validation contract: [validation-gates.md](docs/validation-gates.md)
 
-> **Note:** WSL2 loopback networking adds ~10-15% artificial overhead due to Hyper-V bridge packet duplication. In an isolated data-plane test (telemetry directed to `/dev/null`), raw proxy overhead measured **~1%**. Native Linux and distributed environments are expected to show lower degradation. See [ADR-0007](.context/decisions/) for details.
+> **Note:** WSL2 loopback networking adds ~10-15% artificial overhead due to Hyper-V bridge packet duplication. In an isolated data-plane test (telemetry directed to `/dev/null`), raw proxy overhead measured **~1%**. Native Linux and distributed environments are expected to show lower degradation. See internal ADR-0007 for details.
 
 </details>
 
@@ -374,11 +374,7 @@ Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md)
 | [examples/](examples/) | Ready-to-use TOML configurations |
 | [docs/architecture.md](docs/architecture.md) | Rust architecture blueprint |
 | [docs/implementation-playbook.md](docs/implementation-playbook.md) | Implementation history and stages |
-| [docs/agent-task-cards.md](docs/agent-task-cards.md) | Completed task cards |
 | [docs/validation-gates.md](docs/validation-gates.md) | Quality gate contracts |
-| [docs/verification-ledger.md](docs/verification-ledger.md) | Test execution records |
-| [docs/production-ritual.md](docs/production-ritual.md) | Release semaphores |
-| [docs/github-workflow.md](docs/github-workflow.md) | Commit, PR, and tag standards |
 | [docs/operational-priorities.md](docs/operational-priorities.md) | Functional MVP philosophy |
 | [docs/tooling-setup.md](docs/tooling-setup.md) | Rust, k6, and Docker installation |
 | [benchmarks/](benchmarks/) | Benchmark results and methodology |
