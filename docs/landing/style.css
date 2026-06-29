@@ -172,7 +172,7 @@ header {
   font-family: var(--font-heading);
   font-size: 1.85rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.04em;
   color: var(--text-primary);
   user-select: none;
 }
@@ -370,19 +370,23 @@ nav a:hover {
 }
 
 .proof-card .card-num {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  font-family: var(--font-heading);
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: rgba(247, 76, 0, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-light);
+  background: rgba(247, 76, 0, 0.08);
+  border: 1px solid rgba(247, 76, 0, 0.15);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  margin-bottom: 0.85rem;
 }
 
 .proof-card h3 {
   font-size: 1.3rem;
   margin-bottom: 1rem;
-  padding-right: 2rem;
 }
 
 .proof-card p {
