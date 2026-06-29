@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Update Sponsors in README
         uses: JamesIves/github-sponsors-readme-action@v1
