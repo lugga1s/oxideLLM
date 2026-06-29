@@ -13,7 +13,7 @@
 [![Rust](https://img.shields.io/badge/Rust-1.96+-f74c00.svg?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Version](https://img.shields.io/badge/version-0.9.0--alpha-orange.svg?style=flat-square)](Cargo.toml)
 
-[Quick Start](#quick-start) | [Benchmarks](#performance) | [Architecture](#architecture) | [Configuration](#configuration) | [Contributing](CONTRIBUTING.md) | [Documentation Navigation](#project-context--runbooks)
+[Quick Start](#quick-start) | [Benchmarks](#performance) | [Architecture](#architecture) | [Configuration](#configuration) | [Contributing](file:///c:/Users/preto/Documents/Nova%20pasta/CONTRIBUTING.md) | [Competitive Analysis](file:///c:/Users/preto/Documents/Nova%20pasta/.context/competitive-analysis.md) | [GTM Launch Plan](file:///c:/Users/preto/Documents/Nova%20pasta/.context/marketing-launch-plan.md) | [Documentation Navigation](#project-context--runbooks)
 
 </div>
 
@@ -70,7 +70,7 @@ Under a benchmark load of **21,777 requests** at **~2,168 reqs/s** under WSL2, o
 | **Latency P99 (Jitter)**| ~70ms (~40ms) | **~92ms** (**~52ms**) | ~1,000ms (~800ms) | ~800ms (~700ms) | ~400ms (~350ms) |
 | **RAM (per req)** | - | **~31 KB (zero-copy heap)** | ~50-200 KB | ~30-100 KB | ~10-30 KB |
 
-*\*Note: Benchmarks of 18,118 req/s were validated locally under WSL2. In native Linux (eliminating Hyper-V bridge virtualization overhead), data-plane overhead is only **~1%**. See internal competitive-analysis.md and [validation-gates.md](docs/validation-gates.md) for full proofs.*
+*\*Note: Benchmarks of 18,118 req/s were validated locally under WSL2. In native Linux (eliminating Hyper-V bridge virtualization overhead), data-plane overhead is only **~1%**. See internal [competitive-analysis.md](file:///c:/Users/preto/Documents/Nova%20pasta/.context/competitive-analysis.md) and [validation-gates.md](file:///c:/Users/preto/Documents/Nova%20pasta/docs/validation-gates.md) for full proofs.*
 
 ---
 
