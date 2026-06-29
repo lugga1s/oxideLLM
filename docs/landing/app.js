@@ -87,8 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 7. Update Savings Banner with a micro-fade effect
     savingsPercentText.textContent = `${savingsPercent}%`;
-    savingsMonthlyText.textContent = `Save ${formatCurrency(monthlySavings)} / month`;
-    savingsYearlyText.textContent = `(${formatCurrency(yearlySavings)} saved per year)`;
+    savingsMonthlyText.textContent = `Modeled savings: ${formatCurrency(monthlySavings)} / month`;
+    savingsYearlyText.textContent = `(${formatCurrency(yearlySavings)} modeled per year)`;
   };
 
   // Add event listeners for slider input tracking

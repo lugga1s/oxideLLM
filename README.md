@@ -1,19 +1,17 @@
 <div align="center">
 
-![oxideLLM Banner](docs/assets/banner.png)
-
 # oxideLLM
 
-**High-performance LLM gateway that keeps telemetry off the critical path.**
+**Evidence-first Rust gateway for OpenAI-compatible LLM streaming.**
 
-*Single binary. Zero GC. Async telemetry. Built in Rust.*
+Fast SSE pass-through, bounded async telemetry, micro-batched persistence, and multi-upstream failover in one local-first binary.
 
 [![CI](https://github.com/lugga1s/oxideLLM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lugga1s/oxideLLM/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Rust](https://img.shields.io/badge/Rust-1.96+-f74c00.svg?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/Rust-stable-f74c00.svg?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Version](https://img.shields.io/badge/version-0.9.0--alpha-orange.svg?style=flat-square)](Cargo.toml)
 
-[Quick Start](#quick-start) | [Benchmarks](#performance) | [Architecture](#architecture) | [Configuration](#configuration) | [Contributing](file:///c:/Users/preto/Documents/Nova%20pasta/CONTRIBUTING.md) | [Competitive Analysis](file:///c:/Users/preto/Documents/Nova%20pasta/.context/competitive-analysis.md) | [GTM Launch Plan](file:///c:/Users/preto/Documents/Nova%20pasta/.context/marketing-launch-plan.md) | [Documentation Navigation](#project-context--runbooks)
+[Quick Start](#quick-start) | [Performance](#performance) | [Architecture](#architecture) | [Configuration](#configuration) | [Contributing](CONTRIBUTING.md) | [Validation Gates](docs/validation-gates.md) | [Benchmark Summary](benchmarks/alpha-v1-benchmark-summary.md)
 
 </div>
 
@@ -29,51 +27,34 @@ Traditional LLM gateways couple **proxy**, **tracing**, **logging**, and **datab
 | Traditional gateway (4 workers + Postgres + Redis) | ~8.8 req/s | 55% | **-45%** |
 | Traditional gateway (1 worker + Postgres + Redis) | ~3.9 req/s | 24% | **-75.6%** |
 
-> Source: internal load tests with 500 concurrent requests against vLLM (documented in internal context bottlenecks.md).
+> Source: internal load tests with 500 concurrent requests against vLLM, documented in [.context/bottlenecks.md](.context/bottlenecks.md).
 
 **oxideLLM** solves this by rigidly separating the data plane from telemetry: the task that owns the client socket **never waits** for disk I/O, log flushes, or database writes.
 
-### Empirical Performance & Resource Footprint (WSL2 Benchmarks)
+## Public Evidence Snapshot
 
-Under a benchmark load of **21,777 requests** at **~2,168 reqs/s** under WSL2, oxideLLM demonstrated the following profile:
+oxideLLM is in alpha. The strongest published evidence today is local WSL2/localhost pass-through against the Rust SSE mock, plus CPU and heap profiling. That is useful architecture evidence, but it is not a claim of production parity with vLLM on bare metal.
 
-| Metric | Measured Value | Architecture / Design Choice |
-| :--- | :--- | :--- |
-| **CPU Context Switches** | **1.77 switches/request** | Lock-free telemetry queue via `tokio::sync::mpsc` off the critical path |
-| **Heap Memory Usage** | **~31 KB / request** | Zero-copy stream forwarding (raw `Bytes`, zero heap allocations in `src/stream.rs`) |
-| **P99 Tail Latency** | **48.65 ms** (Avg: 45.85 ms) | Ultra-stable delta of only **2.8 ms** against the average (no thread lock contention) |
-| **Error Rate** | **0.00%** (0 / 21,777) | Robust connection reuse and async buffer boundaries |
+| Evidence | Result | Status |
+|---|---:|---|
+| Stage 2 WSL2/local run, 1000 VUs, 30s | 20,919.35 req/s direct vs 18,118.36 req/s through oxideLLM; 13.39% degradation; P99 70.16 ms vs 92.47 ms | Green for the local/virtualized gate of <15% |
+| Alpha v1 reconciled artifacts | 12.08% degradation with telemetry active; 11.18% with logs to `/dev/null`; older raw files did not record P99 | Yellow for broad public performance claims |
+| WSL2 smoke run with `handleSummary()`, 100 VUs, 10s | 3.01% degradation; P99 48.66 ms direct vs 50.14 ms through oxideLLM | Functional evidence, not the full load gate |
+| Stage 3/4 profiling | 0 heap allocations attributed to `src/stream.rs`; ~31.5 KB allocated/request; 1.77 context switches/request | Green for local CPU/heap profiling |
 
----
-
-## oxideLLM vs. Competitors
-
-### 1. Ecosystem Overview
-| Feature | oxideLLM | LiteLLM | Portkey | Helicone | Kong AI Gateway |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Core Stack** | Rust (Axum/Tokio) | Python (FastAPI) | Node.js | Node.js | Lua/C (OpenResty) |
-| **Telemetry Path** | **Async (bounded MPSC, off critical path)** | Sync/Blocking | Sync/Blocking | Sync/Blocking | Sync/Blocking |
-| **Garbage Collector** | No (Zero GC) | Yes (CPython GC) | Yes (V8 GC) | Yes (V8 GC) | Yes (LuaJIT GC) |
-| **GIL / Contention** | No | Yes (FastAPI/CPython) | No | No | No |
-| **Startup / Init** | ~5ms | ~500ms - 2s | ~200-500ms | ~200-500ms | ~100-300ms |
-| **Dependencies** | Zero (Single binary) | Python, pip packages | Node.js, npm, Redis | Node, Postgres, Redis | OpenResty, DB optional |
-| **Docker Image Size**| ~15 MB (Distroless) | ~1-2 GB | ~500 MB - 1 GB | ~500 MB - 1 GB | ~150-300 MB |
-
-### 2. Raw Performance & Resource Efficiency
-*Under heavy load (1,000 concurrent VUs, SSE pass-through, 30s).*
-
-| Metric | Direct (Baseline) | oxideLLM | LiteLLM | Portkey | Kong AI Gateway |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Throughput (req/s)** | ~20,919 | **~18,118** (WSL2) / **~20,700** (Linux)* | ~2,000 - 5,000 | ~4,000 - 6,000 | ~10,000 - 15,000 |
-| **Degradation vs Direct** | - | **~1%** (Native) / **~13.4%** (WSL2) | ~45% - 75% | ~35% - 55% | ~20% - 35% |
-| **P99 Latency Delta (vs Avg)** | - | **2.8 ms (ultra-stable)** | ~200 - 500 ms | ~150 - 400 ms | ~50 - 150 ms |
-| **Latency P99 (Jitter)**| ~70ms (~40ms) | **~92ms** (**~52ms**) | ~1,000ms (~800ms) | ~800ms (~700ms) | ~400ms (~350ms) |
-| **RAM (per req)** | - | **~31 KB (zero-copy heap)** | ~50-200 KB | ~30-100 KB | ~10-30 KB |
-
-*\*Note: Benchmarks of 18,118 req/s were validated locally under WSL2. In native Linux (eliminating Hyper-V bridge virtualization overhead), data-plane overhead is only **~1%**. See internal [competitive-analysis.md](file:///c:/Users/preto/Documents/Nova%20pasta/.context/competitive-analysis.md) and [validation-gates.md](file:///c:/Users/preto/Documents/Nova%20pasta/docs/validation-gates.md) for full proofs.*
+Claim boundary: the 1.01% number sometimes referenced in older context files compares two oxideLLM modes, not oxideLLM against the direct baseline. It is not used here as a public gateway-overhead claim.
 
 ---
 
+## Architecture Positioning
+
+| Concern | oxideLLM | Common interpreted gateway pattern |
+|---|---|---|
+| Runtime | Rust, Axum, Tokio | Python/Node.js/Lua runtime |
+| Streaming path | Forward upstream chunks as bytes | Often parse or reshape token events |
+| Telemetry path | Bounded `try_send` to a background worker | Often coupled to logging, tracing, or persistence |
+| Persistence | Micro-batched after the response path | Often per-request or per-event writes |
+| Public proof standard | Direct vs gateway artifacts are required | Varies by project |
 
 ## Key Highlights
 
@@ -88,14 +69,16 @@ Under a benchmark load of **21,777 requests** at **~2,168 reqs/s** under WSL2, o
 
 ## Performance
 
-Benchmarked with [k6](https://k6.io) under **1000 virtual users** for **30 seconds** against a Rust SSE mock server on localhost.
+Benchmarked with [k6](https://k6.io) under **1000 virtual users** for **30 seconds** against a Rust SSE mock server on localhost under WSL2. The local/virtualized Stage 2 gate allows less than 15% degradation because WSL2 loopback adds measurable network overhead.
 
 | Metric | Direct (baseline) | via oxideLLM | Overhead |
 |---|---:|---:|---:|
-| **Throughput** | 20,919 req/s | 18,118 req/s | ~13% |
+| **Throughput** | 20,919 req/s | 18,118 req/s | 13.39% |
 | **P95 latency** | 56.51 ms | 74.51 ms | +18 ms |
 | **P99 latency** | 70.16 ms | 92.47 ms | +22 ms |
 | **HTTP errors** | 0.00% | 0.00% | - |
+
+Gate result: green for Stage 2 WSL2/local validation, not yet green for native vLLM parity. For the reconciled alpha summary, see [benchmarks/alpha-v1-benchmark-summary.md](benchmarks/alpha-v1-benchmark-summary.md).
 
 ### Deep Profiling (CPU & Memory Validation)
 
@@ -103,10 +86,10 @@ Traced under a concurrent load of **100 VUs** for **10 seconds** using Rust `dha
 
 - **Total Requests**: 21,777 requests successfully processed.
 - **Average Throughput**: ~2,168 reqs/s.
-- **CPU Context Switches**: **1.77 switches/request** (extremely low, indicating zero lock contention and optimal Tokio thread scheduling).
+- **CPU Context Switches**: **1.77 switches/request** (low in this local run, indicating no obvious lock contention in the measured path).
 - **Heap Memory Footprint**: **~31.5 KB average per request** (stable residency, buffers fully deallocated upon stream termination).
-- **Streaming Path Zero-Copy**: DHAT heap profile confirmed **exactly 0 allocations** originating from the streaming parser (`src/stream.rs`), verifying raw byte pass-through.
-- **Latency Distribution**: Average latency of **45.85 ms** vs. P99 of **48.65 ms** (an ultra-stable delta of only **2.8 ms**, proving no synchronization bottlenecks).
+- **Streaming Path Allocation Check**: DHAT heap profile found **0 allocations attributed to `src/stream.rs`**, supporting raw byte pass-through in the measured stream path.
+- **Latency Distribution**: Average latency of **45.85 ms** vs. P99 of **48.65 ms** in the profiling run.
 
 <details>
 <summary><b>Environment & Reproducibility</b></summary>
@@ -147,7 +130,7 @@ k6 run -e VUS=1000 -e DURATION=30s \
 
 Full methodology: [benchmarks/](benchmarks/) | Validation contract: [validation-gates.md](docs/validation-gates.md)
 
-> **Note:** WSL2 loopback networking adds ~10-15% artificial overhead due to Hyper-V bridge packet duplication. In an isolated data-plane test (telemetry directed to `/dev/null`), raw proxy overhead measured **~1%**. Native Linux and distributed environments are expected to show lower degradation. See internal ADR-0007 for details.
+> **Note:** WSL2 loopback networking adds overhead due to Hyper-V bridge packet duplication. The current public claim remains the measured WSL2/local result above until a native or distributed direct-vs-gateway artifact is recorded.
 
 </details>
 
@@ -161,7 +144,7 @@ oxideLLM separates three processing planes so that analytics never block the cli
 graph LR
     Client["Client SDK / curl"]
     Gateway["oxideLLM Gateway (Axum + Tokio)"]
-    Primary["Primary Upstream (Ollama, OpenAI, Groq)"]
+    Primary["Primary Upstream (Ollama, vLLM, OpenAI-compatible)"]
     Fallback["Fallback Upstream (vLLM, mock, etc.)"]
     Ring["Telemetry Ring Buffer (bounded MPSC)"]
     Worker["Background Worker (micro-batching)"]
@@ -193,14 +176,13 @@ graph LR
 
 ## Supported Providers
 
-| Provider | Status | SSE Streaming | Failover | Health Check |
+| Provider family | Status | SSE Streaming | Failover | Default health check |
 |---|---|---|---|---|
+| **Mock Rust upstream** | Supported for local validation | Yes | Yes | `/healthz` |
 | **Ollama** | Supported | Yes | Yes | `/api/tags` |
-| **OpenAI-compatible** | Supported | Yes | Yes | `/healthz` |
-| **Groq** | Supported | Yes | Yes | `/healthz` |
-| **vLLM** | Supported | Yes | Yes | `/health` |
+| **vLLM** | Supported as OpenAI-compatible pass-through | Yes | Yes | `/health` |
+| **OpenAI-compatible HTTP APIs** | Supported by configurable `base_url` | Yes, when upstream supports it | Yes | Configurable |
 | **Anthropic** | Planned | - | - | - |
-| **Any OpenAI-compatible** | Pass-through | Yes | Yes | Configurable |
 
 > oxideLLM uses the **OpenAI chat completions format** as its canonical API. Any provider that exposes a `/v1/chat/completions`-compatible endpoint works out of the box.
 
@@ -322,8 +304,6 @@ cargo test --all
 cargo clippy --all-targets -- -D warnings
 ```
 
-**Current test suite (v0.9.0):** `14 passed | 0 failed | 0 ignored`
-
 Tests cover: multi-upstream parsing, SSE parsing, proxy failover, health checking, telemetry overflow, body size limits, timeout enforcement, header filtering, model-based routing, and end-to-end integration.
 
 ---
@@ -336,10 +316,10 @@ Tests cover: multi-upstream parsing, SSE parsing, proxy failover, health checkin
 | **Telemetry** | Async, off critical path (bounded MPSC + micro-batching, zero blocking of client responses) | Synchronous logging, tracing, and DB writes per request |
 | **P99 Latency Stability** | **Ultra-stable (P99 flat, delta of only 2.8 ms against average under load)** | Jittery (P99 spikes due to synchronous Telemetry/GC locks) |
 | **SSE Handling** | Zero-copy byte stream forwarding | Per-token JSON parse -> object -> re-serialize |
-| **In-Memory Heap Allocation** | **Zero-copy heap allocation per streaming chunk (~31 KB total per request)** | High allocation rate per token (MBs allocated per request) |
+| **In-Memory Heap Allocation** | No heap allocations attributed to `src/stream.rs` in the profiled stream path; ~31.5 KB allocated/request overall in the DHAT run | High allocation rate per token can occur when chunks are parsed into objects |
 | **Database on Hot Path** | Never (by design invariant) | Often (Postgres/Redis per request) |
 | **Deployment** | Single static binary | Python env + Postgres + Redis + workers |
-| **Measured Overhead** | ~13% on localhost (WSL2), ~1% data-plane isolated | Up to 75.6% observed under load |
+| **Measured Overhead** | 13.39% on the 1000 VU WSL2/local Stage 2 run; 3.01% on the 100 VU smoke run | Up to 75.6% observed in the baseline bottleneck study |
 
 > This is not a critique of specific projects - it's a comparison of **architectural patterns**. Run times with synchronous persistence are excellent for many use cases but create bottlenecks under high-concurrency LLM streaming workloads.
 
@@ -350,7 +330,7 @@ Tests cover: multi-upstream parsing, SSE parsing, proxy failover, health checkin
 - [x] **Stage 0** - Repository foundation, CI, Rust scaffold
 - [x] **Stage 1** - Mock SSE server + baseline benchmarks
 - [x] **Stage 2** - Proxy pass-through with bounded telemetry
-- [x] **Stage 3** - Lock-free contention validation (`perf stat`, flamegraph)
+- [x] **Stage 3** - Contention validation (`perf stat`, flamegraph)
 - [x] **Stage 4** - Memory allocation profiling (`heaptrack`, DHAT)
 - [x] **Stage 5** - Micro-batched async persistence
 - [x] **Stage 7** - GitHub-ready (templates, CI, docs)
@@ -395,25 +375,25 @@ These strategic engineering manuals and operational runbooks are designed to kee
 
 ### Strategic Context (`.context/`)
 
-- [Project Manifest](file:///c:/Users/preto/Documents/Nova%20pasta/.context/project-manifest.md) - Project mission, core values, architectural tenets, and target gates.
-- [Bottlenecks Registry](file:///c:/Users/preto/Documents/Nova%20pasta/.context/bottlenecks.md) - Traced bottlenecks in legacy gateways and target performance improvements.
-- [Competitive Analysis](file:///c:/Users/preto/Documents/Nova%20pasta/.context/competitive-analysis.md) - In-depth breakdown of oxideLLM vs. LiteLLM, Kong, and Portkey.
-- [Product Roadmap](file:///c:/Users/preto/Documents/Nova%20pasta/.context/roadmap.md) - Strategic development horizon from MVP to Beta releases.
-- [Marketing & GTM Strategy](file:///c:/Users/preto/Documents/Nova%20pasta/.context/marketing-launch-plan.md) - Go-To-Market strategy, distribution channels, and messaging.
-- [GTM Launch Copy](file:///c:/Users/preto/Documents/Nova%20pasta/.context/GTM-launch-copy.md) - Pre-drafted launch threads and posts for Hacker News, Reddit, and X/Twitter.
+- [Project Manifest](.context/project-manifest.md) - Project mission, core values, architectural tenets, and target gates.
+- [Bottlenecks Registry](.context/bottlenecks.md) - Traced bottlenecks in legacy gateways and target performance improvements.
+- [Competitive Analysis](.context/competitive-analysis.md) - In-depth breakdown of oxideLLM vs. LiteLLM, Kong, and Portkey.
+- [Product Roadmap](.context/roadmap.md) - Strategic development horizon from MVP to Beta releases.
+- [Marketing & GTM Strategy](.context/marketing-launch-plan.md) - Go-To-Market strategy, distribution channels, and messaging.
+- [GTM Launch Copy](.context/GTM-launch-copy.md) - Pre-drafted launch threads and posts for Hacker News, Reddit, and X/Twitter.
 
 ### Execution & Hardening Manuals (`docs/`)
 
-- [Implementation Playbook](file:///c:/Users/preto/Documents/Nova%20pasta/docs/implementation-playbook.md) - Operational play-by-play for all coding and validation sessions.
-- [Validation Gates Contract](file:///c:/Users/preto/Documents/Nova%20pasta/docs/validation-gates.md) - Strict performance and error rate thresholds required for each stage.
-- [Agent Quality Scorecard](file:///c:/Users/preto/Documents/Nova%20pasta/docs/agent-quality-scorecard.md) - Evaluation criteria and scoring weights for agent executions.
-- [Production Ritual](file:///c:/Users/preto/Documents/Nova%20pasta/docs/production-ritual.md) - Hardening, pre-flight checks, and deployment guidelines.
-- [Tooling Setup Guide](file:///c:/Users/preto/Documents/Nova%20pasta/docs/tooling-setup.md) - Installation runbook for Rust, k6, Docker, and WSL2 environments.
-- [Architecture Blueprint](file:///c:/Users/preto/Documents/Nova%20pasta/docs/architecture.md) - Detailed layout of data, control, and telemetry planes.
-- [Multi-Agent Handoff](file:///c:/Users/preto/Documents/Nova%20pasta/docs/multi-agent-handoff.md) - Guidelines for structured agent handoffs.
+- [Implementation Playbook](docs/implementation-playbook.md) - Operational play-by-play for all coding and validation sessions.
+- [Validation Gates Contract](docs/validation-gates.md) - Strict performance and error rate thresholds required for each stage.
+- [Agent Quality Scorecard](docs/agent-quality-scorecard.md) - Evaluation criteria and scoring weights for agent executions.
+- [Production Ritual](docs/production-ritual.md) - Hardening, pre-flight checks, and deployment guidelines.
+- [Tooling Setup Guide](docs/tooling-setup.md) - Installation runbook for Rust, k6, Docker, and WSL2 environments.
+- [Architecture Blueprint](docs/architecture.md) - Detailed layout of data, control, and telemetry planes.
+- [Multi-Agent Handoff](docs/multi-agent-handoff.md) - Guidelines for structured agent handoffs.
 
 ### Benchmarking & Profiling (`benchmarks/`)
 
-- [vLLM Parity Runbook](file:///c:/Users/preto/Documents/Nova%20pasta/benchmarks/vllm-parity-runbook.md) - Step-by-step benchmark execution protocol for comparing against vLLM.
-- [DHAT Profiling Report](file:///c:/Users/preto/Documents/Nova%20pasta/benchmarks/results/dhat-profiling-report.md) - Empirical analysis proving zero-copy heap usage and context switches.
-- [Alpha v1 Benchmark Summary](file:///c:/Users/preto/Documents/Nova%20pasta/benchmarks/alpha-v1-benchmark-summary.md) - Comprehensive summary of our initial load testing results.
+- [vLLM Parity Runbook](benchmarks/vllm-parity-runbook.md) - Step-by-step benchmark execution protocol for comparing against vLLM.
+- [DHAT Profiling Report](benchmarks/results/dhat-profiling-report.md) - Empirical profiling notes for heap usage and context switches.
+- [Alpha v1 Benchmark Summary](benchmarks/alpha-v1-benchmark-summary.md) - Comprehensive summary of the initial load testing results.
