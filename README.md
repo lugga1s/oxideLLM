@@ -78,7 +78,7 @@ Benchmarked with [k6](https://k6.io) under **1000 virtual users** for **30 secon
 | **P99 latency** | 70.16 ms | 92.47 ms | +22 ms |
 | **HTTP errors** | 0.00% | 0.00% | - |
 
-Gate result: green for Stage 2 WSL2/local validation, not yet green for native vLLM parity. For the reconciled alpha summary, see [benchmarks/alpha-v1-benchmark-summary.md](benchmarks/alpha-v1-benchmark-summary.md).
+Gate result: green for Stage 2 WSL2/local validation, not yet green for external-upstream or competitive public claims. For the reconciled alpha summary, see [benchmarks/alpha-v1-benchmark-summary.md](benchmarks/alpha-v1-benchmark-summary.md).
 
 ### Deep Profiling (CPU & Memory Validation)
 
@@ -314,7 +314,7 @@ Tests cover: multi-upstream parsing, SSE parsing, proxy failover, health checkin
 |---|---|---|
 | **Runtime** | Compiled Rust (no GC, no interpreter) | Python/Node.js (GC pauses, interpreter overhead) |
 | **Telemetry** | Async, off critical path (bounded MPSC + micro-batching, zero blocking of client responses) | Synchronous logging, tracing, and DB writes per request |
-| **P99 Latency Stability** | **Ultra-stable (P99 flat, delta of only 2.8 ms against average under load)** | Jittery (P99 spikes due to synchronous Telemetry/GC locks) |
+| **P99 Latency Stability** | Measured and reported with every benchmark; current WSL2/local run recorded 70.16 ms direct vs 92.47 ms via gateway | Can become jittery when telemetry, persistence, or runtime pauses sit on the request path |
 | **SSE Handling** | Zero-copy byte stream forwarding | Per-token JSON parse -> object -> re-serialize |
 | **In-Memory Heap Allocation** | No heap allocations attributed to `src/stream.rs` in the profiled stream path; ~31.5 KB allocated/request overall in the DHAT run | High allocation rate per token can occur when chunks are parsed into objects |
 | **Database on Hot Path** | Never (by design invariant) | Often (Postgres/Redis per request) |
@@ -335,7 +335,8 @@ Tests cover: multi-upstream parsing, SSE parsing, proxy failover, health checkin
 - [x] **Stage 5** - Micro-batched async persistence
 - [x] **Stage 7** - GitHub-ready (templates, CI, docs)
 - [x] **Stage 8** - Multi-upstream failover + active health checking
-- [ ] **Stage 6** - vLLM native parity benchmark (bare metal)
+- [ ] **Stage 6** - External upstream overhead benchmark with vLLM or another OpenAI-compatible server
+- [ ] **Stage 9** - Competitive benchmark harness against comparable gateways
 - [ ] **Future** - Prometheus `/metrics` endpoint
 - [ ] **Future** - Rate limiting per tenant/route/model
 - [ ] **Future** - Intelligent semantic/cost-based routing
@@ -385,6 +386,6 @@ This section links the stable public material needed to use, validate, and contr
 ### Benchmarking
 
 - [Benchmarks README](benchmarks/README.md) - Benchmark directory overview.
-- [vLLM Parity Runbook](benchmarks/vllm-parity-runbook.md) - Procedure for comparing direct vLLM vs gateway.
+- [External Upstream Benchmark Runbook](benchmarks/external-upstream-benchmark-runbook.md) - Procedure for comparing direct upstream vs gateway.
 - [Stage 2 WSL2 Summary](benchmarks/stage-02-wsl2-ext4-20260628-summary.md) - Local WSL2 pass-through result.
 - [Alpha v1 Benchmark Summary](benchmarks/alpha-v1-benchmark-summary.md) - Reconciled alpha benchmark evidence and claim boundaries.

@@ -71,15 +71,14 @@ P99 registrado e comparado
 http_req_failed < 0.1%
 ```
 
-## vLLM Native Parity
+## External Upstream Benchmark
 
-Para detalhes de configuracao de ambiente, instalacao do vLLM, execucao do servidor e disparos de carga comparativos, consulte o guia passo a passo em [vllm-parity-runbook.md](vllm-parity-runbook.md).
+Para detalhes de configuracao de ambiente, instalacao do vLLM ou outro upstream OpenAI-compatible, execucao do servidor e disparos de carga comparativos, consulte o guia passo a passo em [external-upstream-benchmark-runbook.md](external-upstream-benchmark-runbook.md).
 
-Quando o vLLM estiver rodando localmente, execute os comandos descritos no runbook para coletar os resultados direto vs gateway.
+Quando o upstream estiver rodando, execute os comandos descritos no runbook para coletar os resultados direto vs gateway. O upstream direto e o controle de laboratorio; claims contra concorrentes exigem uma rodada separada com os gateways comparados no mesmo ambiente.
 
 Publicar resultados somente se:
 
-- RPS gateway >= 98% do vLLM direto;
-- P99 gateway aproximadamente flat;
+- RPS, P95 e P99 direto vs gateway estiverem registrados;
 - TTFT overhead documentado e explicado;
 - artefatos salvos e resumo Markdown versionavel criado.
