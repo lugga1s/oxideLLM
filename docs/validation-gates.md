@@ -1,7 +1,7 @@
 # Gates de Validacao
 
 Status: contrato de sucesso pratico do projeto  
-Publico: agentes autonomos e engenheiro de contexto nao tecnico
+Publico: contribuidores, agentes de implementacao e revisores tecnicos
 
 ---
 
@@ -51,7 +51,7 @@ Gate:
 ```text
 Todos os comandos passam.
 README explica como rodar.
-AGENTS.md existe.
+CONTRIBUTING.md existe.
 docs/validation-gates.md existe.
 .github/workflows/ci.yml existe.
 ```
@@ -262,7 +262,7 @@ P99 piora ao ativar persistencia.
 Objetivo: trocar mock por Ollama ou vLLM e validar streaming real. Quando vLLM estiver disponivel, comparar gateway contra vLLM direto e validar a meta de performance flat.
 
 Como fazer:
-Para o procedimento detalhado de instalacao, configuracao e comandos de disparo do benchmark, consulte o [vllm-parity-runbook.md](file:///c:/Users/preto/Documents/Nova%20pasta/benchmarks/vllm-parity-runbook.md).
+Para o procedimento detalhado de instalacao, configuracao e comandos de disparo do benchmark, consulte o [vllm-parity-runbook.md](../benchmarks/vllm-parity-runbook.md).
 
 Gate:
 ```text

@@ -27,7 +27,7 @@ Traditional LLM gateways couple **proxy**, **tracing**, **logging**, and **datab
 | Traditional gateway (4 workers + Postgres + Redis) | ~8.8 req/s | 55% | **-45%** |
 | Traditional gateway (1 worker + Postgres + Redis) | ~3.9 req/s | 24% | **-75.6%** |
 
-> Source: internal load tests with 500 concurrent requests against vLLM, documented in [.context/bottlenecks.md](.context/bottlenecks.md).
+> Source: baseline load study with 500 concurrent requests against vLLM. Public benchmark artifacts and gates are listed below.
 
 **oxideLLM** solves this by rigidly separating the data plane from telemetry: the task that owns the client socket **never waits** for disk I/O, log flushes, or database writes.
 
@@ -42,7 +42,7 @@ oxideLLM is in alpha. The strongest published evidence today is local WSL2/local
 | WSL2 smoke run with `handleSummary()`, 100 VUs, 10s | 3.01% degradation; P99 48.66 ms direct vs 50.14 ms through oxideLLM | Functional evidence, not the full load gate |
 | Stage 3/4 profiling | 0 heap allocations attributed to `src/stream.rs`; ~31.5 KB allocated/request; 1.77 context switches/request | Green for local CPU/heap profiling |
 
-Claim boundary: the 1.01% number sometimes referenced in older context files compares two oxideLLM modes, not oxideLLM against the direct baseline. It is not used here as a public gateway-overhead claim.
+Claim boundary: the 1.01% number sometimes referenced in earlier notes compares two oxideLLM modes, not oxideLLM against the direct baseline. It is not used here as a public gateway-overhead claim.
 
 ---
 
@@ -357,7 +357,7 @@ oxideLLM is **100% free and open-source**. If the gateway reduces your infrastru
 
 ## License
 
-**AGPL-3.0-or-later** - see [LICENSE](LICENSE) for full text and [licensing-strategy.md](docs/licensing-strategy.md) for the commercial open-source policy.
+**AGPL-3.0-or-later** - see [LICENSE](LICENSE) for the full text.
 
 ---
 
@@ -369,31 +369,22 @@ Contributions are welcome! Please read the [Contributing Guide](CONTRIBUTING.md)
 
 ---
 
-## Project Context & Runbooks
+## Public Documentation
 
-These strategic engineering manuals and operational runbooks are designed to keep the development lifecycle aligned between humans and agentic workflows.
+This section links the stable public material needed to use, validate, and contribute to oxideLLM. Planning notes and operational runbooks are kept outside the public documentation set.
 
-### Strategic Context (`.context/`)
+### Engineering Docs
 
-- [Project Manifest](.context/project-manifest.md) - Project mission, core values, architectural tenets, and target gates.
-- [Bottlenecks Registry](.context/bottlenecks.md) - Traced bottlenecks in legacy gateways and target performance improvements.
-- [Competitive Analysis](.context/competitive-analysis.md) - In-depth breakdown of oxideLLM vs. LiteLLM, Kong, and Portkey.
-- [Product Roadmap](.context/roadmap.md) - Strategic development horizon from MVP to Beta releases.
-- [Marketing & GTM Strategy](.context/marketing-launch-plan.md) - Go-To-Market strategy, distribution channels, and messaging.
-- [GTM Launch Copy](.context/GTM-launch-copy.md) - Pre-drafted launch threads and posts for Hacker News, Reddit, and X/Twitter.
+- [Architecture Blueprint](docs/architecture.md) - Data, control, and telemetry planes.
+- [Protocol Contracts](docs/protocol-contracts.md) - OpenAI-compatible request and SSE behavior.
+- [Telemetry Schema](docs/telemetry-schema.md) - Event fields and batching model.
+- [Testing Strategy](docs/testing-strategy.md) - Unit, integration, load, and profiling test plan.
+- [Tooling Setup Guide](docs/tooling-setup.md) - Rust, k6, Docker, GitHub CLI, and WSL2 setup.
+- [Validation Gates Contract](docs/validation-gates.md) - Performance and correctness gates for each stage.
 
-### Execution & Hardening Manuals (`docs/`)
+### Benchmarking
 
-- [Implementation Playbook](docs/implementation-playbook.md) - Operational play-by-play for all coding and validation sessions.
-- [Validation Gates Contract](docs/validation-gates.md) - Strict performance and error rate thresholds required for each stage.
-- [Agent Quality Scorecard](docs/agent-quality-scorecard.md) - Evaluation criteria and scoring weights for agent executions.
-- [Production Ritual](docs/production-ritual.md) - Hardening, pre-flight checks, and deployment guidelines.
-- [Tooling Setup Guide](docs/tooling-setup.md) - Installation runbook for Rust, k6, Docker, and WSL2 environments.
-- [Architecture Blueprint](docs/architecture.md) - Detailed layout of data, control, and telemetry planes.
-- [Multi-Agent Handoff](docs/multi-agent-handoff.md) - Guidelines for structured agent handoffs.
-
-### Benchmarking & Profiling (`benchmarks/`)
-
-- [vLLM Parity Runbook](benchmarks/vllm-parity-runbook.md) - Step-by-step benchmark execution protocol for comparing against vLLM.
-- [DHAT Profiling Report](benchmarks/results/dhat-profiling-report.md) - Empirical profiling notes for heap usage and context switches.
-- [Alpha v1 Benchmark Summary](benchmarks/alpha-v1-benchmark-summary.md) - Comprehensive summary of the initial load testing results.
+- [Benchmarks README](benchmarks/README.md) - Benchmark directory overview.
+- [vLLM Parity Runbook](benchmarks/vllm-parity-runbook.md) - Procedure for comparing direct vLLM vs gateway.
+- [Stage 2 WSL2 Summary](benchmarks/stage-02-wsl2-ext4-20260628-summary.md) - Local WSL2 pass-through result.
+- [Alpha v1 Benchmark Summary](benchmarks/alpha-v1-benchmark-summary.md) - Reconciled alpha benchmark evidence and claim boundaries.

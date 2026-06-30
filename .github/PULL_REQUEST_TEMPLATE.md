@@ -48,5 +48,4 @@ Resultado:
 
 - [ ] README
 - [ ] docs/*
-- [ ] .context/*
 - [ ] ADR se necessario

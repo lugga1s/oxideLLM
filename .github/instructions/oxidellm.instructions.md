@@ -4,7 +4,7 @@ applyTo: "**"
 
 # oxideLLM Repository Instructions
 
-Use `AGENTS.md` as the source of truth.
+Use `README.md`, `docs/architecture.md`, and `docs/validation-gates.md` as the public source of truth.
 
 The product goal is a local-first Rust LLM gateway with:
 
@@ -14,7 +14,7 @@ The product goal is a local-first Rust LLM gateway with:
 - benchmark-first claims;
 - AGPL-3.0-or-later license.
 
-Prefer small changes tied to a task card.
+Prefer small changes tied to a documented validation gate or public issue.
 
 Never add:
 

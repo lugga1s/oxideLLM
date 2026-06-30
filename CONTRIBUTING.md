@@ -9,11 +9,11 @@ claim de performance deve ser publicada sem evidencia pratica.
 Leia estes arquivos para entender o contrato tecnico do repositorio:
 
 - `README.md`
-- `AGENTS.md`
 - `docs/architecture.md`
-- `docs/implementation-playbook.md`
 - `docs/validation-gates.md`
-- `docs/github-workflow.md`
+- `docs/protocol-contracts.md`
+- `docs/testing-strategy.md`
+- `docs/tooling-setup.md`
 
 ## Setup do Ambiente
 
