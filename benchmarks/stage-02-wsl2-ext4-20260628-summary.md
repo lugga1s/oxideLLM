@@ -93,4 +93,4 @@ Two prior runs from the Windows-mounted workspace (`/mnt/c/...`) passed function
 
 Those runs should not be used for public performance claims. The ext4 run is the cleaner local evidence because it avoids Windows-mounted filesystem overhead noted by WSL.
 
-This is still a local WSL2/localhost benchmark, not vLLM native parity and not a distributed network result.
+This is still a local WSL2/localhost benchmark, not an external-upstream or distributed-network result.

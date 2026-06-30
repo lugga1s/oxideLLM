@@ -19,17 +19,17 @@ Passou ou falhou no gate?
 Qual e o proximo risco?
 ```
 
-Definicao operacional de "performance flat":
+Definicao operacional de overhead controlado:
 
 ```text
-RPS gateway >= 98% do upstream direto
-P99 gateway dentro de margem definida contra upstream direto
+RPS gateway comparado contra upstream direto
+P95/P99 gateway comparados contra upstream direto
 TTFT gateway com overhead pequeno e registrado
 sem crescimento linear de memoria
 sem persistencia bloqueando resposta
 ```
 
-Para claims publicos, "flat com vLLM nativo" significa que essa comparacao foi rodada contra vLLM direto no mesmo ambiente, com artefatos salvos.
+O upstream direto e o controle de laboratorio, nao o concorrente. Para claims publicos de superioridade, oxideLLM e os gateways comparados precisam rodar no mesmo laboratorio, contra o mesmo upstream, com artefatos salvos e metodologia publicada.
 
 ---
 
@@ -257,12 +257,12 @@ P99 piora ao ativar persistencia.
 
 ---
 
-## 8. Stage 6: Upstream Real / vLLM Native Parity
+## 8. Stage 6: Upstream Real / External Overhead
 
-Objetivo: trocar mock por Ollama ou vLLM e validar streaming real. Quando vLLM estiver disponivel, comparar gateway contra vLLM direto e validar a meta de performance flat.
+Objetivo: trocar mock por Ollama, vLLM ou outro servidor OpenAI-compatible e validar streaming real. Quando houver GPU ou servidor dedicado disponivel, comparar upstream direto contra gateway para medir overhead real, sem transformar paridade absoluta em claim automatico.
 
 Como fazer:
-Para o procedimento detalhado de instalacao, configuracao e comandos de disparo do benchmark, consulte o [vllm-parity-runbook.md](../benchmarks/vllm-parity-runbook.md).
+Para o procedimento detalhado de instalacao, configuracao e comandos de disparo do benchmark, consulte o [external-upstream-benchmark-runbook.md](../benchmarks/external-upstream-benchmark-runbook.md).
 
 Gate:
 ```text
@@ -270,9 +270,9 @@ SSE real chega ao cliente.
 TTFT e medido no primeiro delta util.
 Client disconnect cancela upstream.
 Uso de CPU/memoria continua estavel.
-RPS gateway >= 98% do vLLM direto no mesmo ambiente.
-P99 gateway aproximadamente flat contra vLLM direto.
+RPS, P95 e P99 gateway comparados contra upstream direto no mesmo ambiente.
 Overhead de TTFT registrado e explicado.
+Sem regressao de erro HTTP.
 ```
 
 Evidencia obrigatoria:
@@ -285,6 +285,28 @@ TTFT direto vs gateway
 commit
 hardware
 comando
+```
+
+## 8.1 Stage 6B: Competitive Benchmark Evidence
+
+Objetivo: comparar oxideLLM contra gateways equivalentes somente quando o laboratorio estiver controlado.
+
+Gate:
+```text
+mesmo upstream real;
+mesmo modelo;
+mesmo payload;
+mesma concorrencia;
+mesmo hardware/rede;
+minimo 3 repeticoes por cenario;
+RPS, P95, P99, TTFT, erro, CPU, memoria e rede registrados;
+configuracao de cada gateway publicada ou descrita;
+nenhum claim feito sem artefato.
+```
+
+Resultado permitido:
+```text
+oxideLLM foi mais rapido/estavel que <gateway> no cenario <X>, no laboratorio <Y>, com artefatos <Z>.
 ```
 
 ---

@@ -331,20 +331,19 @@ O MVP tecnico esta pronto quando:
 - buffer cheio nao bloqueia resposta;
 - relatorio de benchmark existe em `benchmarks/results/`.
 
-## 13. Definicao de "Flat com vLLM Nativo"
+## 13. Definicao de Overhead Controlado
 
-O projeto pode dizer que manteve performance flat com vLLM nativo somente quando:
+O upstream direto, como vLLM sem gateway, e o controle de laboratorio. Ele nao e o produto concorrente e nao deve virar uma meta cega. O projeto pode dizer que tem overhead controlado contra um upstream real somente quando:
 
 ```text
-vLLM direto e gateway -> vLLM foram testados no mesmo hardware;
+upstream direto e gateway -> upstream foram testados no mesmo hardware;
 mesmo script k6;
 mesmo modelo;
 mesma concorrencia;
 mesma janela de tempo;
-RPS do gateway >= 98% do direto;
-P99 nao apresenta regressao material;
+RPS, P95, P99 e taxa de erro foram registrados;
 TTFT tem overhead pequeno e documentado;
 artefatos estao salvos.
 ```
 
-Essa e uma meta agressiva. Se o resultado ficar entre 95% e 98%, o status e amarelo: tecnicamente promissor, mas ainda nao pronto para claim publico de paridade.
+Claims publicos contra concorrentes exigem uma segunda comparacao: oxideLLM, gateway concorrente e upstream direto rodando no mesmo laboratorio, com mesma carga, mesmo modelo, mesmas repeticoes e artefatos publicados. Sem isso, a documentacao deve falar apenas de arquitetura, evidencias locais e limites medidos.
