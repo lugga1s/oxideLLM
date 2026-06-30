@@ -1,6 +1,6 @@
 # Fontes de Pesquisa
 
-Status: fontes consultadas e recomendadas para agentes  
+Status: fontes publicas consultadas para decisoes tecnicas
 Data de consolidacao: 2026-06-28
 
 Use fontes primarias sempre que possivel. Se uma fonte mudar, atualize este arquivo e registre ADR quando a mudanca afetar arquitetura.
@@ -19,7 +19,7 @@ Use fontes primarias sempre que possivel. Se uma fonte mudar, atualize este arqu
 - DeepSeek coding agents: https://api-docs.deepseek.com/guides/coding_agents
 - AGENTS.md community spec: https://agents.md/
 
-Uso no projeto: manter `AGENTS.md`, `GEMINI.md`, `DEEPSEEK.md` e prompts por card como instrucoes curtas, verificaveis e focadas em done-when.
+Uso no projeto: manter instrucoes publicas de repositorio curtas, verificaveis e focadas em done-when.
 
 ---
 

@@ -1,7 +1,7 @@
 # Blueprint Tecnico Rust
 
-Status: especificacao operacional inicial  
-Publico: agentes de implementacao, engenheiro de contexto e revisores tecnicos  
+Status: especificacao operacional inicial
+Publico: contribuidores, agentes de implementacao e revisores tecnicos
 Linguagem alvo: Rust
 
 ---

@@ -4,9 +4,8 @@ This repository is the oxideLLM project: a Rust LLM gateway focused on streaming
 
 Before making code changes:
 
-- read `AGENTS.md`;
-- read `docs/implementation-playbook.md`;
-- choose one task card from `docs/agent-task-cards.md`;
+- read `README.md`;
+- read `docs/architecture.md`;
 - validate with commands from `docs/validation-gates.md`.
 
 Hard rules:

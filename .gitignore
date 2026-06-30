@@ -17,6 +17,9 @@ DEEPSEEK.md
 CLAUDE.md
 .context/
 docs/agent-*
+docs/implementation-playbook.md
+docs/licensing-strategy.md
+docs/operational-priorities.md
 docs/context-packets.md
 docs/multi-agent-handoff.md
 docs/review-gates.md
