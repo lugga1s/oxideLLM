@@ -21,6 +21,6 @@ jobs:
           file: 'README.md'
 
       - name: Commit & Push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "docs: update sponsors in README [skip ci]"
